@@ -47,6 +47,7 @@ obj-$(CONFIG_INTEL_MENLOW)	+= intel_menlow.o
 obj-$(CONFIG_ACPI_WMI)		+= wmi.o
 obj-$(CONFIG_MSI_WMI)		+= msi-wmi.o
 obj-$(CONFIG_PEAQ_WMI)		+= peaq-wmi.o
+obj-$(CONFIG_S103T_WMI)		+= lsrot.o
 obj-$(CONFIG_SURFACE3_WMI)	+= surface3-wmi.o
 obj-$(CONFIG_TOPSTAR_LAPTOP)	+= topstar-laptop.o
 obj-$(CONFIG_WMI_BMOF)		+= wmi-bmof.o
