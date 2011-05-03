@@ -1170,6 +1170,16 @@ config SYSTEM76_ACPI
 
 	  If you have a System76 laptop running open firmware, say Y or M here.
 
+config S103T_WMI
+	tristate "Lenovo S10-3T Rotate Button Support"
+	depends on ACPI_WMI
+	depends on INPUT
+	help
+	  This is a driver for the Lenovo ideapad S10-3T rotate button.
+
+	  To compile this driver as a module, choose M here: the module will
+	  be called lsrot.
+
 config TOPSTAR_LAPTOP
 	tristate "Topstar Laptop Extras"
 	depends on ACPI
