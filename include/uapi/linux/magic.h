@@ -63,6 +63,7 @@
 #define REISER2FS_JR_SUPER_MAGIC_STRING	"ReIsEr3Fs"
 
 #define SDCARDFS_SUPER_MAGIC	0x5dca2df5
+#define ESDFS_SUPER_MAGIC	0x00035df5
 
 #define SMB_SUPER_MAGIC		0x517B
 #define CIFS_SUPER_MAGIC	0xFF534D42      /* the first four bytes of SMB PDUs */
