@@ -11598,6 +11598,7 @@ static int ipw_pci_probe(struct pci_dev *pdev,
 		goto out;
 	}
 
+	strcpy(net_dev->name, "wlan%d");
 	priv = libipw_priv(net_dev);
 	priv->ieee = netdev_priv(net_dev);
 
