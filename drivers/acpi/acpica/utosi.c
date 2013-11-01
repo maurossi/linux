@@ -72,6 +72,7 @@ static struct acpi_interface_info acpi_default_supported_interfaces[] = {
 	{"Windows 2017.2", NULL, 0, ACPI_OSI_WIN_10_RS3},	/* Windows 10 version 1709 - Added 02/2018 */
 	{"Windows 2018", NULL, 0, ACPI_OSI_WIN_10_RS4},	/* Windows 10 version 1803 - Added 11/2018 */
 	{"Windows 2018.2", NULL, 0, ACPI_OSI_WIN_10_RS5},	/* Windows 10 version 1809 - Added 11/2018 */
+	{"Android-IA", NULL, 0, ACPI_OSI_WIN_8},	/* Android-IA - Added 11/2013 */
 
 	/* Feature Group Strings */
 
