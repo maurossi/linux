@@ -1610,7 +1610,8 @@ irqreturn_t musb_interrupt(struct musb *musb)
 	 */
 
 	if (musb->int_usb)
-		retval |= musb_stage0_irq(musb, musb->int_usb, devctl);
+		retval |= musb_stage0_irq(musb, musb->int_usb,
+				devctl);
 
 	if (musb->int_tx & 1) {
 		if (is_host_active(musb))
@@ -1622,24 +1623,33 @@ irqreturn_t musb_interrupt(struct musb *musb)
 		musb->int_tx &= ~BIT(0);
 	}
 
-	status = musb->int_tx;
-
-	for_each_set_bit(epnum, &status, 16) {
-		retval = IRQ_HANDLED;
-		if (is_host_active(musb))
-			musb_host_tx(musb, epnum);
-		else
-			musb_g_tx(musb, epnum);
+	reg = musb->int_tx >> 1;
+	ep_num = 1;
+	while (reg) {
+		if (reg & 1) {
+			retval = IRQ_HANDLED;
+			if (is_host_active(musb))
+				musb_host_tx(musb, ep_num);
+			else
+				musb_g_tx(musb, ep_num);
+		}
+		reg >>= 1;
+		ep_num++;
 	}
 
-	status = musb->int_rx;
+	reg = musb->int_rx >> 1;
+	ep_num = 1;
+	while (reg) {
+		if (reg & 1) {
+			retval = IRQ_HANDLED;
+			if (is_host_active(musb))
+				musb_host_rx(musb, ep_num);
+			else
+				musb_g_rx(musb, ep_num);
+		}
 
-	for_each_set_bit(epnum, &status, 16) {
-		retval = IRQ_HANDLED;
-		if (is_host_active(musb))
-			musb_host_rx(musb, epnum);
-		else
-			musb_g_rx(musb, epnum);
+		reg >>= 1;
+		ep_num++;
 	}
 
 	return retval;
