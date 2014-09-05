@@ -529,6 +529,7 @@ drm_render_driver_and_ioctl(const struct drm_device *dev, u32 flags)
  */
 int drm_ioctl_permit(u32 flags, struct drm_file *file_priv)
 {
+#ifndef CONFIG_NO_GPU_AUTHENTICATION
 	const struct drm_device *dev = file_priv->minor->dev;
 
 	/* ROOT_ONLY is only for CAP_SYS_ADMIN */
@@ -552,6 +553,7 @@ int drm_ioctl_permit(u32 flags, struct drm_file *file_priv)
 	if (unlikely(!(flags & DRM_RENDER_ALLOW) &&
 		     drm_is_render_client(file_priv)))
 		return -EACCES;
+#endif
 
 	return 0;
 }
