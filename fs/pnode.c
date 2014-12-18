@@ -426,7 +426,7 @@ static void __propagate_umount(struct mount *mnt)
 		CLEAR_MNT_MARK(child);
 		if (list_empty(&child->mnt_mounts)) {
 			list_del_init(&child->mnt_child);
-			child->mnt.mnt_flags |= MNT_UMOUNT;
+			hlist_del_init_rcu(&child->mnt_hash);
 			list_move_tail(&child->mnt_list, &mnt->mnt_list);
 		}
 	}
@@ -442,9 +442,6 @@ static void __propagate_umount(struct mount *mnt)
 int propagate_umount(struct list_head *list)
 {
 	struct mount *mnt;
-
-	list_for_each_entry_reverse(mnt, list, mnt_list)
-		mark_umount_candidates(mnt);
 
 	list_for_each_entry(mnt, list, mnt_list)
 		__propagate_umount(mnt);

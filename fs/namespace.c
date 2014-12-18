@@ -1358,25 +1358,21 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 	LIST_HEAD(tmp_list);
 	struct mount *p;
 
-	if (how & UMOUNT_PROPAGATE)
-		propagate_mount_unlock(mnt);
-
 	/* Gather the mounts to umount */
-	for (p = mnt; p; p = next_mnt(p, mnt)) {
-		p->mnt.mnt_flags |= MNT_UMOUNT;
+	for (p = mnt; p; p = next_mnt(p, mnt))
 		list_move(&p->mnt_list, &tmp_list);
-	}
 
-	/* Hide the mounts from mnt_mounts */
+	/* Hide the mounts from lookup_mnt and mnt_mounts */
 	list_for_each_entry(p, &tmp_list, mnt_list) {
+		hlist_del_init_rcu(&p->mnt_hash);
 		list_del_init(&p->mnt_child);
 	}
 
+	/* Add propogated mounts to the tmp_list */
 	if (how & UMOUNT_PROPAGATE)
 		propagate_umount(&tmp_list);
 
 	while (!list_empty(&tmp_list)) {
-		bool disconnect;
 		p = list_first_entry(&tmp_list, struct mount, mnt_list);
 		list_del_init(&p->mnt_expire);
 		list_del_init(&p->mnt_list);
