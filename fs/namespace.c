@@ -1364,9 +1364,8 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 		list_move(&p->mnt_list, &tmp_list);
 	}
 
-	/* Hide the mounts from lookup_mnt and mnt_mounts */
+	/* Hide the mounts from mnt_mounts */
 	list_for_each_entry(p, &tmp_list, mnt_list) {
-		hlist_del_init_rcu(&p->mnt_hash);
 		list_del_init(&p->mnt_child);
 	}
 
@@ -1392,12 +1391,12 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 				 disconnect ? &unmounted : NULL);
 		if (mnt_has_parent(p)) {
 			mnt_add_count(p->mnt_parent, -1);
-			if (!disconnect) {
-				/* Don't forget about p */
-				list_add_tail(&p->mnt_child, &p->mnt_parent->mnt_mounts);
-			} else {
-				umount_mnt(p);
-			}
+			/* old mountpoint will be dropped when we can do that */
+			p->mnt_ex_mountpoint = p->mnt_mountpoint;
+			p->mnt_mountpoint = p->mnt.mnt_root;
+			p->mnt_parent = p;
+			p->mnt_mp = NULL;
+			hlist_del_init_rcu(&p->mnt_hash);
 		}
 		change_mnt_propagation(p, MS_PRIVATE);
 	}
