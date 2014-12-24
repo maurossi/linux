@@ -1348,7 +1348,6 @@ static inline void namespace_lock(void)
 enum umount_tree_flags {
 	UMOUNT_SYNC = 1,
 	UMOUNT_PROPAGATE = 2,
-	UMOUNT_CONNECTED = 4,
 };
 /*
  * mount_lock must be held
@@ -1373,7 +1372,6 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 		list_del_init(&p->mnt_child);
 	}
 
-	/* Add propogated mounts to the tmp_list */
 	if (how & UMOUNT_PROPAGATE)
 		propagate_umount(&tmp_list);
 
@@ -1526,14 +1524,7 @@ void __detach_mounts(struct dentry *dentry)
 	lock_mount_hash();
 	while (!hlist_empty(&mp->m_list)) {
 		mnt = hlist_entry(mp->m_list.first, struct mount, mnt_mp_list);
-		if (mnt->mnt.mnt_flags & MNT_UMOUNT) {
-			struct mount *p, *tmp;
-			list_for_each_entry_safe(p, tmp, &mnt->mnt_mounts,  mnt_child) {
-				hlist_add_head(&p->mnt_umount.s_list, &unmounted);
-				umount_mnt(p);
-			}
-		}
-		else umount_tree(mnt, UMOUNT_CONNECTED);
+		umount_tree(mnt, UMOUNT_PROPAGATE);
 	}
 	unlock_mount_hash();
 	put_mountpoint(mp);
