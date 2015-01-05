@@ -382,6 +382,26 @@ void propagate_mount_unlock(struct mount *mnt)
 }
 
 /*
+ * Mark all mounts that the MNT_LOCKED logic will allow to be unmounted.
+ */
+static void mark_umount_candidates(struct mount *mnt)
+{
+	struct mount *parent = mnt->mnt_parent;
+	struct mount *m;
+
+	BUG_ON(parent == mnt);
+
+	for (m = propagation_next(parent, parent); m;
+			m = propagation_next(m, parent)) {
+		struct mount *child = __lookup_mnt_last(&m->mnt,
+						mnt->mnt_mountpoint);
+		if (child && (!IS_MNT_LOCKED(child) || IS_MNT_MARKED(m))) {
+			SET_MNT_MARK(child);
+		}
+	}
+}
+
+/*
  * NOTE: unmounting 'mnt' naturally propagates to all other mounts its
  * parent propagates to.
  */
@@ -422,6 +442,9 @@ static void __propagate_umount(struct mount *mnt)
 int propagate_umount(struct list_head *list)
 {
 	struct mount *mnt;
+
+	list_for_each_entry_reverse(mnt, list, mnt_list)
+		mark_umount_candidates(mnt);
 
 	list_for_each_entry(mnt, list, mnt_list)
 		__propagate_umount(mnt);
