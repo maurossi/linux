@@ -822,6 +822,16 @@ static void detach_mnt(struct mount *mnt, struct path *old_path)
 /*
  * vfsmount lock must be held for write
  */
+static void umount_mnt(struct mount *mnt)
+{
+	/* old mountpoint will be dropped when we can do that */
+	mnt->mnt_ex_mountpoint = mnt->mnt_mountpoint;
+	unhash_mnt(mnt);
+}
+
+/*
+ * vfsmount lock must be held for write
+ */
 void mnt_set_mountpoint(struct mount *mnt,
 			struct mountpoint *mp,
 			struct mount *child_mnt)
@@ -1384,9 +1394,7 @@ static void umount_tree(struct mount *mnt, enum umount_tree_flags how)
 				 disconnect ? &unmounted : NULL);
 		if (mnt_has_parent(p)) {
 			mnt_add_count(p->mnt_parent, -1);
-			/* old mountpoint will be dropped when we can do that */
-			p->mnt_ex_mountpoint = p->mnt_mountpoint;
-			unhash_mnt(p);
+			umount_mnt(p);
 		}
 		change_mnt_propagation(p, MS_PRIVATE);
 	}
