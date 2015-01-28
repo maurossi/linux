@@ -519,8 +519,7 @@ int bus_add_device(struct device *dev)
 		error = sysfs_create_link(&bus->p->devices_kset->kobj,
 						&dev->kobj, dev_name(dev));
 		if (error)
-			goto out_id;
-#ifndef CONFIG_ANDROID
+			goto out_groups;
 		error = sysfs_create_link(&dev->kobj,
 				&dev->bus->p->subsys.kobj, "subsystem");
 		if (error)
