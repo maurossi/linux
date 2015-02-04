@@ -237,7 +237,7 @@ static int handle_tpi(struct kvm_vcpu *vcpu)
 	u64 addr;
 	ar_t ar;
 
-	addr = kvm_s390_get_base_disp_s(vcpu, &ar);
+	addr = kvm_s390_get_base_disp_s(vcpu);
 	if (addr & 3)
 		return kvm_s390_inject_program_int(vcpu, PGM_SPECIFICATION);
 
@@ -256,7 +256,7 @@ static int handle_tpi(struct kvm_vcpu *vcpu)
 		 * provided area.
 		 */
 		len = sizeof(tpi_data) - 4;
-		rc = write_guest(vcpu, addr, ar, &tpi_data, len);
+		rc = write_guest(vcpu, addr, &tpi_data, len);
 		if (rc) {
 			rc = kvm_s390_inject_prog_cond(vcpu, rc);
 			goto reinject_interrupt;
@@ -284,10 +284,7 @@ reinject_interrupt:
 	 * instruction is suppressed from the guest's view: reinject the
 	 * interrupt.
 	 */
-	if (kvm_s390_reinject_io_int(vcpu->kvm, inti)) {
-		kfree(inti);
-		rc = -EFAULT;
-	}
+	kvm_s390_reinject_io_int(vcpu->kvm, inti);
 	/* don't set the cc, a pgm irq was injected or we drop to user space */
 	return rc ? -EFAULT : 0;
 }
