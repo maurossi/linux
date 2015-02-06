@@ -3671,6 +3671,11 @@ static void brcmf_sdio_dataworker(struct work_struct *work)
 		brcmf_sdiod_try_freeze(bus->sdiodev);
 		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DATA);
 	}
+	if (brcmf_sdiod_freezing(bus->sdiodev)) {
+		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DOWN);
+		brcmf_sdiod_try_freeze(bus->sdiodev);
+		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DATA);
+	}
 }
 
 static void
