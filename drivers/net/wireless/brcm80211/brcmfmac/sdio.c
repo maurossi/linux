@@ -3535,8 +3535,8 @@ done:
 
 void brcmf_sdio_trigger_dpc(struct brcmf_sdio *bus)
 {
-	if (!bus->dpc_triggered) {
-		bus->dpc_triggered = true;
+	if (atomic_read(&bus->dpc_tskcnt) == 0) {
+		atomic_inc(&bus->dpc_tskcnt);
 		queue_work(bus->brcmf_wq, &bus->datawork);
 	}
 }
@@ -3666,6 +3666,11 @@ static void brcmf_sdio_dataworker(struct work_struct *work)
 		bus->idlecount = 0;
 	}
 	bus->dpc_running = false;
+	if (brcmf_sdiod_freezing(bus->sdiodev)) {
+		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DOWN);
+		brcmf_sdiod_try_freeze(bus->sdiodev);
+		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DATA);
+	}
 	if (brcmf_sdiod_freezing(bus->sdiodev)) {
 		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DOWN);
 		brcmf_sdiod_try_freeze(bus->sdiodev);
@@ -4324,4 +4329,3 @@ int brcmf_sdio_sleep(struct brcmf_sdio *bus, bool sleep)
 
 	return ret;
 }
-
