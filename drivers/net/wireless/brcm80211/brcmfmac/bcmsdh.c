@@ -1168,6 +1168,9 @@ static int brcmf_ops_sdio_probe(struct sdio_func *func,
 #endif
 
 	brcmf_sdiod_change_state(sdiodev, BRCMF_SDIOD_DOWN);
+	sdiodev->sleeping = false;
+	atomic_set(&sdiodev->suspend, false);
+	init_waitqueue_head(&sdiodev->idle_wait);
 
 	brcmf_dbg(SDIO, "F2 found, calling brcmf_sdiod_probe...\n");
 	err = brcmf_sdiod_probe(sdiodev);
