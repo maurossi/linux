@@ -1335,27 +1335,7 @@ int kvm_mips_handle_exit(struct kvm_run *run, struct kvm_vcpu *vcpu)
 		ret = kvm_mips_callbacks->handle_break(vcpu);
 		break;
 
-	case T_TRAP:
-		++vcpu->stat.trap_inst_exits;
-		trace_kvm_exit(vcpu, TRAP_INST_EXITS);
-		ret = kvm_mips_callbacks->handle_trap(vcpu);
-		break;
-
-	case T_MSAFPE:
-		++vcpu->stat.msa_fpe_exits;
-		trace_kvm_exit(vcpu, MSA_FPE_EXITS);
-		ret = kvm_mips_callbacks->handle_msa_fpe(vcpu);
-		break;
-
-	case T_FPE:
-		++vcpu->stat.fpe_exits;
-		trace_kvm_exit(vcpu, FPE_EXITS);
-		ret = kvm_mips_callbacks->handle_fpe(vcpu);
-		break;
-
 	case T_MSADIS:
-		++vcpu->stat.msa_disabled_exits;
-		trace_kvm_exit(vcpu, MSA_DISABLED_EXITS);
 		ret = kvm_mips_callbacks->handle_msa_disabled(vcpu);
 		break;
 
