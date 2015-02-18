@@ -511,18 +511,10 @@ static int adv7511_get_edid_block(void *data, u8 *buf, unsigned int block,
 			adv7511->edid_read = false;
 			regmap_write(adv7511->regmap, ADV7511_REG_EDID_SEGMENT,
 				     block);
-			ret = adv7511_wait_for_interrupt(adv7511,
-					ADV7511_INT0_EDID_READY |
-					(ADV7511_INT1_DDC_ERROR << 8), 200);
-
-			if (!(ret & ADV7511_INT0_EDID_READY))
-				return -EIO;
+			ret = adv7511_wait_for_edid(adv7511, 200);
+			if (ret < 0)
+				return ret;
 		}
-
-		regmap_write(adv7511->regmap, ADV7511_REG_INT(0),
-			     ADV7511_INT0_EDID_READY);
-		regmap_write(adv7511->regmap, ADV7511_REG_INT(1),
-			     ADV7511_INT1_DDC_ERROR);
 
 		/* Break this apart, hopefully more I2C controllers will
 		 * support 64 byte transfers than 256 byte transfers
