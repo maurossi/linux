@@ -511,10 +511,18 @@ static int adv7511_get_edid_block(void *data, u8 *buf, unsigned int block,
 			adv7511->edid_read = false;
 			regmap_write(adv7511->regmap, ADV7511_REG_EDID_SEGMENT,
 				     block);
-			ret = adv7511_wait_for_edid(adv7511, 200);
-			if (ret < 0)
-				return ret;
+			ret = adv7511_wait_for_interrupt(adv7511,
+					ADV7511_INT0_EDID_READY |
+					(ADV7511_INT1_DDC_ERROR << 8), 200);
+
+			if (!(ret & ADV7511_INT0_EDID_READY))
+				return -EIO;
 		}
+
+		regmap_write(adv7511->regmap, ADV7511_REG_INT(0),
+			     ADV7511_INT0_EDID_READY);
+		regmap_write(adv7511->regmap, ADV7511_REG_INT(1),
+			     ADV7511_INT1_DDC_ERROR);
 
 		/* Break this apart, hopefully more I2C controllers will
 		 * support 64 byte transfers than 256 byte transfers
@@ -600,10 +608,43 @@ static void adv7511_encoder_dpms(struct drm_encoder *encoder, int mode)
 {
 	struct adv7511 *adv7511 = encoder_to_adv7511(encoder);
 
-	if (mode == DRM_MODE_DPMS_ON)
-		adv7511_power_on(adv7511);
-	else
-		adv7511_power_off(adv7511);
+	switch (mode) {
+	case DRM_MODE_DPMS_ON:
+		adv7511->current_edid_segment = -1;
+
+		regmap_write(adv7511->regmap, ADV7511_REG_INT(0),
+			     ADV7511_INT0_EDID_READY);
+		regmap_write(adv7511->regmap, ADV7511_REG_INT(1),
+			     ADV7511_INT1_DDC_ERROR);
+		regmap_update_bits(adv7511->regmap, ADV7511_REG_POWER,
+				   ADV7511_POWER_POWER_DOWN, 0);
+		/*
+		 * Per spec it is allowed to pulse the HDP signal to indicate
+		 * that the EDID information has changed. Some monitors do this
+		 * when they wakeup from standby or are enabled. When the HDP
+		 * goes low the adv7511 is reset and the outputs are disabled
+		 * which might cause the monitor to go to standby again. To
+		 * avoid this we ignore the HDP pin for the first few seconds
+		 * after enabeling the output.
+		 */
+		regmap_update_bits(adv7511->regmap, ADV7511_REG_POWER2,
+				   ADV7511_REG_POWER2_HDP_SRC_MASK,
+				   ADV7511_REG_POWER2_HDP_SRC_NONE);
+		/* Most of the registers are reset during power down or
+		 * when HPD is low
+		 */
+		regcache_sync(adv7511->regmap);
+		break;
+	default:
+		/* TODO: setup additional power down modes */
+		regmap_update_bits(adv7511->regmap, ADV7511_REG_POWER,
+				   ADV7511_POWER_POWER_DOWN,
+				   ADV7511_POWER_POWER_DOWN);
+		regcache_mark_dirty(adv7511->regmap);
+		break;
+	}
+
+	adv7511->dpms_mode = mode;
 }
 
 static enum drm_connector_status
