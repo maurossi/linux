@@ -427,10 +427,8 @@ static int lp8788_psy_register(struct platform_device *pdev,
 	if (IS_ERR(pchg->charger))
 		return -EPERM;
 
-	pchg->battery = power_supply_register(&pdev->dev,
-					      &lp8788_psy_battery_desc, NULL);
-	if (IS_ERR(pchg->battery)) {
-		power_supply_unregister(pchg->charger);
+	if (power_supply_register(&pdev->dev, &pchg->battery)) {
+		power_supply_unregister(&pchg->charger);
 		return -EPERM;
 	}
 
