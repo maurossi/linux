@@ -193,7 +193,6 @@ static int twl4030_madc_battery_probe(struct platform_device *pdev)
 {
 	struct twl4030_madc_battery *twl4030_madc_bat;
 	struct twl4030_madc_bat_platform_data *pdata = pdev->dev.platform_data;
-	struct power_supply_config psy_cfg = {};
 	int ret = 0;
 
 	twl4030_madc_bat = devm_kzalloc(&pdev->dev, sizeof(*twl4030_madc_bat),
@@ -229,24 +228,10 @@ static int twl4030_madc_battery_probe(struct platform_device *pdev)
 
 	twl4030_madc_bat->pdata = pdata;
 	platform_set_drvdata(pdev, twl4030_madc_bat);
-	psy_cfg.drv_data = twl4030_madc_bat;
-	twl4030_madc_bat->psy = power_supply_register(&pdev->dev,
-						      &twl4030_madc_bat_desc,
-						      &psy_cfg);
-	if (IS_ERR(twl4030_madc_bat->psy)) {
-		ret = PTR_ERR(twl4030_madc_bat->psy);
-		goto err_vbat;
-	}
+	ret = power_supply_register(&pdev->dev, &twl4030_madc_bat->psy);
+	if (ret < 0)
+		kfree(twl4030_madc_bat);
 
-	return 0;
-
-err_vbat:
-	iio_channel_release(twl4030_madc_bat->channel_vbat);
-err_ichg:
-	iio_channel_release(twl4030_madc_bat->channel_ichg);
-err_temp:
-	iio_channel_release(twl4030_madc_bat->channel_temp);
-err:
 	return ret;
 }
 
