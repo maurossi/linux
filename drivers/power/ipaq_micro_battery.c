@@ -243,25 +243,19 @@ static int micro_batt_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, mb);
 	queue_delayed_work(mb->wq, &mb->update, 1);
 
-	micro_batt_power = power_supply_register(&pdev->dev,
-						 &micro_batt_power_desc, NULL);
-	if (IS_ERR(micro_batt_power)) {
-		ret = PTR_ERR(micro_batt_power);
+	ret = power_supply_register(&pdev->dev, &micro_batt_power);
+	if (ret < 0)
 		goto batt_err;
-	}
 
-	micro_ac_power = power_supply_register(&pdev->dev,
-					       &micro_ac_power_desc, NULL);
-	if (IS_ERR(micro_ac_power)) {
-		ret = PTR_ERR(micro_ac_power);
+	ret = power_supply_register(&pdev->dev, &micro_ac_power);
+	if (ret < 0)
 		goto ac_err;
-	}
 
 	dev_info(&pdev->dev, "iPAQ micro battery driver\n");
 	return 0;
 
 ac_err:
-	power_supply_unregister(micro_ac_power);
+	power_supply_unregister(&micro_ac_power);
 batt_err:
 	cancel_delayed_work_sync(&mb->update);
 	destroy_workqueue(mb->wq);
