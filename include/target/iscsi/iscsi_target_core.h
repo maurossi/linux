@@ -603,6 +603,8 @@ struct iscsi_conn {
 	struct iscsi_tpg_np	*tpg_np;
 	/* Pointer to parent session */
 	struct iscsi_session	*sess;
+	/* Pointer to thread_set in use for this conn's threads */
+	struct iscsi_thread_set	*thread_set;
 	int			bitmap_id;
 	int			rx_thread_active;
 	struct task_struct	*rx_thread;
@@ -879,6 +881,8 @@ struct iscsit_global {
 	u32			auth_id;
 	u32			inactive_ts;
 #define ISCSIT_BITMAP_BITS	262144
+	/* Thread Set bitmap count */
+	int			ts_bitmap_count;
 	/* Thread Set bitmap pointer */
 	unsigned long		*ts_bitmap;
 	spinlock_t		ts_bitmap_lock;

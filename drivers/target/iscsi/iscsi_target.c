@@ -639,8 +639,6 @@ static void __exit iscsi_target_cleanup_module(void)
 	if (iscsit_global->discovery_tpg)
 		iscsit_tpg_disable_portal_group(iscsit_global->discovery_tpg, 1);
 
-	target_unregister_template(&iscsi_ops);
-
 	vfree(iscsit_global->ts_bitmap);
 	kfree(iscsit_global);
 }
