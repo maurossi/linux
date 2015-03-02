@@ -5811,6 +5811,7 @@ long btrfs_ioctl_send(struct file *mnt_file, void __user *arg_)
 				goto out;
 			}
 			spin_lock(&clone_root->root_item_lock);
+			clone_root->send_in_progress++;
 			if (!btrfs_root_readonly(clone_root) ||
 			    btrfs_root_dead(clone_root)) {
 				spin_unlock(&clone_root->root_item_lock);
