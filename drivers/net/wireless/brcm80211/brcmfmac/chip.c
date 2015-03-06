@@ -608,41 +608,10 @@ static void brcmf_chip_socram_ramsize(struct brcmf_core_priv *sr, u32 *ramsize,
 		break;
 	default:
 		break;
-	}
-}
-
-/** Return the TCM-RAM size of the ARMCR4 core. */
-static u32 brcmf_chip_tcm_ramsize(struct brcmf_core_priv *cr4)
-{
-	u32 corecap;
-	u32 memsize = 0;
-	u32 nab;
-	u32 nbb;
-	u32 totb;
-	u32 bxinfo;
-	u32 idx;
-
-	corecap = brcmf_chip_core_read32(cr4, ARMCR4_CAP);
-
-	nab = (corecap & ARMCR4_TCBANB_MASK) >> ARMCR4_TCBANB_SHIFT;
-	nbb = (corecap & ARMCR4_TCBBNB_MASK) >> ARMCR4_TCBBNB_SHIFT;
-	totb = nab + nbb;
-
-	for (idx = 0; idx < totb; idx++) {
-		brcmf_chip_core_write32(cr4, ARMCR4_BANKIDX, idx);
-		bxinfo = brcmf_chip_core_read32(cr4, ARMCR4_BANKINFO);
-		memsize += ((bxinfo & ARMCR4_BSZ_MASK) + 1) * ARMCR4_BSZ_MULT;
-	}
-
-	return memsize;
-}
-
-static u32 brcmf_chip_tcm_rambase(struct brcmf_chip_priv *ci)
-{
-	switch (ci->pub.chip) {
 	case BRCM_CC_4345_CHIP_ID:
-		return 0x198000;
-	case BRCM_CC_4335_CHIP_ID:
+		ci->pub.ramsize = 0xc8000;
+		ci->pub.rambase = 0x198000;
+		break;
 	case BRCM_CC_4339_CHIP_ID:
 	case BRCM_CC_4354_CHIP_ID:
 	case BRCM_CC_4356_CHIP_ID:
