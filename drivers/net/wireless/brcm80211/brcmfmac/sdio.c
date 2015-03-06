@@ -2748,14 +2748,9 @@ static void brcmf_sdio_dpc(struct brcmf_sdio *bus)
 		brcmf_err("failed backplane access over SDIO, halting operation\n");
 		atomic_set(&bus->intstatus, 0);
 		if (bus->ctrl_frame_stat) {
-			sdio_claim_host(bus->sdiodev->func[1]);
-			if (bus->ctrl_frame_stat) {
-				bus->ctrl_frame_err = -ENODEV;
-				wmb();
-				bus->ctrl_frame_stat = false;
-				brcmf_sdio_wait_event_wakeup(bus);
-			}
-			sdio_release_host(bus->sdiodev->func[1]);
+			bus->ctrl_frame_err = -ENODEV;
+			bus->ctrl_frame_stat = false;
+			brcmf_sdio_wait_event_wakeup(bus);
 		}
 	} else if (atomic_read(&bus->intstatus) ||
 		   atomic_read(&bus->ipend) > 0 ||
