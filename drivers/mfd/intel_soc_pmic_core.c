@@ -25,6 +25,7 @@
 #include <linux/regmap.h>
 #include <linux/mfd/intel_soc_pmic.h>
 #include <linux/gpio/machine.h>
+#include <linux/pwm.h>
 #include "intel_soc_pmic_core.h"
 
 static int intel_soc_pmic_find_gpio_irq(struct device *dev)
@@ -89,6 +90,9 @@ static int intel_soc_pmic_i2c_probe(struct i2c_client *i2c,
 	/* Add lookup table binding for Panel Control to the GPIO Chip */
 	gpiod_add_lookup_table(&panel_gpio_table);
 
+	/* Add lookup table for crc-pwm */
+	pwm_add_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
+
 	ret = mfd_add_devices(dev, -1, config->cell_dev,
 			      config->n_cell_devs, NULL, 0,
 			      regmap_irq_get_domain(pmic->irq_chip_data));
@@ -110,6 +114,9 @@ static int intel_soc_pmic_i2c_remove(struct i2c_client *i2c)
 
 	/* Remove lookup table for Panel Control from the GPIO Chip */
 	gpiod_remove_lookup_table(&panel_gpio_table);
+
+	/* remove crc-pwm lookup table */
+	pwm_remove_table(crc_pwm_lookup, ARRAY_SIZE(crc_pwm_lookup));
 
 	mfd_remove_devices(&i2c->dev);
 
