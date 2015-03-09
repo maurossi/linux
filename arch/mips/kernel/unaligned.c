@@ -108,6 +108,7 @@ extern void show_registers(struct pt_regs *regs);
 
 #ifdef __BIG_ENDIAN
 #define     _LoadHW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (".set\tnoat\n"        \
 			"1:\t"type##_lb("%0", "0(%2)")"\n"  \
 			"2:\t"type##_lbu("$1", "1(%2)")"\n\t"\
@@ -130,6 +131,7 @@ extern void show_registers(struct pt_regs *regs);
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _LoadW(addr, value, res, type)   \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_lwl("%0", "(%2)")"\n"   \
 			"2:\t"type##_lwr("%0", "3(%2)")"\n\t"\
@@ -151,6 +153,7 @@ extern void show_registers(struct pt_regs *regs);
 #else
 /* MIPSR6 has no lwl instruction */
 #define     _LoadW(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n"			    \
 			".set\tnoat\n\t"		    \
@@ -185,6 +188,7 @@ extern void show_registers(struct pt_regs *regs);
 #endif /* CONFIG_CPU_MIPSR6 */
 
 #define     _LoadHWU(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tnoat\n"                      \
 			"1:\t"type##_lbu("%0", "0(%2)")"\n" \
@@ -209,6 +213,7 @@ extern void show_registers(struct pt_regs *regs);
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _LoadWU(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_lwl("%0", "(%2)")"\n"  \
 			"2:\t"type##_lwr("%0", "3(%2)")"\n\t"\
@@ -230,6 +235,7 @@ extern void show_registers(struct pt_regs *regs);
 } while(0)
 
 #define     _LoadDW(addr, value, res)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\tldl\t%0, (%2)\n"               \
 			"2:\tldr\t%0, 7(%2)\n\t"            \
@@ -251,6 +257,7 @@ extern void show_registers(struct pt_regs *regs);
 #else
 /* MIPSR6 has not lwl and ldl instructions */
 #define	    _LoadWU(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -283,6 +290,7 @@ extern void show_registers(struct pt_regs *regs);
 } while(0)
 
 #define     _LoadDW(addr, value, res)  \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -334,6 +342,7 @@ extern void show_registers(struct pt_regs *regs);
 
 
 #define     _StoreHW(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tnoat\n"                      \
 			"1:\t"type##_sb("%1", "1(%2)")"\n"  \
@@ -357,6 +366,7 @@ extern void show_registers(struct pt_regs *regs);
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _StoreW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_swl("%1", "(%2)")"\n"  \
 			"2:\t"type##_swr("%1", "3(%2)")"\n\t"\
@@ -376,6 +386,7 @@ extern void show_registers(struct pt_regs *regs);
 } while(0)
 
 #define     _StoreDW(addr, value, res) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\tsdl\t%1,(%2)\n"                \
 			"2:\tsdr\t%1, 7(%2)\n\t"            \
@@ -397,6 +408,7 @@ extern void show_registers(struct pt_regs *regs);
 #else
 /* MIPSR6 has no swl and sdl instructions */
 #define     _StoreW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -475,6 +487,7 @@ do {                                                        \
 #else /* __BIG_ENDIAN */
 
 #define     _LoadHW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (".set\tnoat\n"        \
 			"1:\t"type##_lb("%0", "1(%2)")"\n"  \
 			"2:\t"type##_lbu("$1", "0(%2)")"\n\t"\
@@ -497,6 +510,7 @@ do {                                                        \
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _LoadW(addr, value, res, type)   \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_lwl("%0", "3(%2)")"\n" \
 			"2:\t"type##_lwr("%0", "(%2)")"\n\t"\
@@ -518,6 +532,7 @@ do {                                                        \
 #else
 /* MIPSR6 has no lwl instruction */
 #define     _LoadW(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n"			    \
 			".set\tnoat\n\t"		    \
@@ -553,6 +568,7 @@ do {                                                        \
 
 
 #define     _LoadHWU(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tnoat\n"                      \
 			"1:\t"type##_lbu("%0", "1(%2)")"\n" \
@@ -577,6 +593,7 @@ do {                                                        \
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _LoadWU(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_lwl("%0", "3(%2)")"\n" \
 			"2:\t"type##_lwr("%0", "(%2)")"\n\t"\
@@ -598,6 +615,7 @@ do {                                                        \
 } while(0)
 
 #define     _LoadDW(addr, value, res)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\tldl\t%0, 7(%2)\n"              \
 			"2:\tldr\t%0, (%2)\n\t"             \
@@ -619,6 +637,7 @@ do {                                                        \
 #else
 /* MIPSR6 has not lwl and ldl instructions */
 #define	    _LoadWU(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -651,6 +670,7 @@ do {                                                        \
 } while(0)
 
 #define     _LoadDW(addr, value, res)  \
+do {                                                        \
 		__asm__ __volatile__ (			    \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -700,6 +720,7 @@ do {                                                        \
 #endif /* CONFIG_CPU_MIPSR6 */
 
 #define     _StoreHW(addr, value, res, type) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tnoat\n"                      \
 			"1:\t"type##_sb("%1", "0(%2)")"\n"  \
@@ -723,6 +744,7 @@ do {                                                        \
 
 #ifndef CONFIG_CPU_MIPSR6
 #define     _StoreW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\t"type##_swl("%1", "3(%2)")"\n" \
 			"2:\t"type##_swr("%1", "(%2)")"\n\t"\
@@ -742,6 +764,7 @@ do {                                                        \
 } while(0)
 
 #define     _StoreDW(addr, value, res) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			"1:\tsdl\t%1, 7(%2)\n"              \
 			"2:\tsdr\t%1, (%2)\n\t"             \
@@ -763,6 +786,7 @@ do {                                                        \
 #else
 /* MIPSR6 has no swl and sdl instructions */
 #define     _StoreW(addr, value, res, type)  \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
@@ -793,6 +817,7 @@ do {                                                        \
 } while(0)
 
 #define     _StoreDW(addr, value, res) \
+do {                                                        \
 		__asm__ __volatile__ (                      \
 			".set\tpush\n\t"		    \
 			".set\tnoat\n\t"		    \
