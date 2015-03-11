@@ -975,6 +975,8 @@ struct brcmf_chip *brcmf_chip_attach(void *ctx,
 	if (err < 0)
 		goto fail;
 
+	/* assure chip is passive for download */
+	brcmf_chip_set_passive(&chip->pub);
 	return &chip->pub;
 
 fail:
