@@ -1072,7 +1072,8 @@ static int brcmf_sdio_readshared(struct brcmf_sdio *bus,
 	struct sdpcm_shared_le sh_le;
 	__le32 addr_le;
 
-	shaddr = bus->ci->rambase + bus->ci->ramsize - 4;
+	sdio_claim_host(bus->sdiodev->func[1]);
+	brcmf_sdio_bus_sleep(bus, false, false);
 
 	/*
 	 * Read last word in socram to determine
