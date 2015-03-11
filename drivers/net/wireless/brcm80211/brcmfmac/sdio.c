@@ -972,7 +972,6 @@ static int brcmf_sdio_clkctl(struct brcmf_sdio *bus, uint target, bool pendok)
 			brcmf_sdio_sdclk(bus, true);
 		/* Now request HT Avail on the backplane */
 		brcmf_sdio_htclk(bus, true, pendok);
-		brcmf_sdio_wd_timer(bus, BRCMF_WD_POLL_MS);
 		break;
 
 	case CLK_SDONLY:
