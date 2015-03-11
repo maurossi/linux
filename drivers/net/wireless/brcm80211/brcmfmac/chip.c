@@ -512,6 +512,10 @@ static int brcmf_chip_cores_check(struct brcmf_chip_priv *ci)
 			break;
 		case BCMA_CORE_ARM_CR4:
 			cpu_found = true;
+			if (ci->pub.rambase == 0) {
+				brcmf_err("RAM base not provided with ARM CR4 core\n");
+				return -ENOMEM;
+			}
 			break;
 		default:
 			break;
@@ -527,12 +531,11 @@ static int brcmf_chip_cores_check(struct brcmf_chip_priv *ci)
 		brcmf_err("RAM core not provided with ARM CM3 core\n");
 		return -ENODEV;
 	}
+	if (!ci->pub.ramsize) {
+		brcmf_err("RAM size is undetermined\n");
+		return -ENOMEM;
+	}
 	return 0;
-}
-
-static u32 brcmf_chip_core_read32(struct brcmf_core_priv *core, u16 reg)
-{
-	return core->chip->ops->read32(core->chip->ctx, core->pub.base + reg);
 }
 
 static void brcmf_chip_core_write32(struct brcmf_core_priv *core,
