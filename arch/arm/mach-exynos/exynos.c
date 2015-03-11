@@ -179,7 +179,7 @@ static void __init exynos_init_io(void)
  */
 void exynos_set_delayed_reset_assertion(bool enable)
 {
-	if (of_machine_is_compatible("samsung,exynos4")) {
+	if (soc_is_exynos4()) {
 		unsigned int tmp, core_id;
 
 		for (core_id = 0; core_id < num_possible_cpus(); core_id++) {
@@ -193,11 +193,6 @@ void exynos_set_delayed_reset_assertion(bool enable)
 	}
 }
 
-/*
- * Apparently, these SoCs are not able to wake-up from suspend using
- * the PMU. Too bad. Should they suddenly become capable of such a
- * feat, the matches below should be moved to suspend.c.
- */
 static const struct of_device_id exynos_dt_pmu_match[] = {
 	{ .compatible = "samsung,exynos5260-pmu" },
 	{ .compatible = "samsung,exynos5410-pmu" },
