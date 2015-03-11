@@ -512,10 +512,6 @@ static int brcmf_chip_cores_check(struct brcmf_chip_priv *ci)
 			break;
 		case BCMA_CORE_ARM_CR4:
 			cpu_found = true;
-			if (ci->pub.rambase == 0) {
-				brcmf_err("RAM base not provided with ARM CR4 core\n");
-				return -ENOMEM;
-			}
 			break;
 		default:
 			break;
@@ -531,11 +527,12 @@ static int brcmf_chip_cores_check(struct brcmf_chip_priv *ci)
 		brcmf_err("RAM core not provided with ARM CM3 core\n");
 		return -ENODEV;
 	}
-	if (!ci->pub.ramsize) {
-		brcmf_err("RAM size is undetermined\n");
-		return -ENOMEM;
-	}
 	return 0;
+}
+
+static u32 brcmf_chip_core_read32(struct brcmf_core_priv *core, u16 reg)
+{
+	return core->chip->ops->read32(core->chip->ctx, core->pub.base + reg);
 }
 
 static void brcmf_chip_core_write32(struct brcmf_core_priv *core,
@@ -603,18 +600,43 @@ static void brcmf_chip_socram_ramsize(struct brcmf_core_priv *sr, u32 *ramsize,
 		if (sr->chip->pub.chiprev < 2)
 			*srsize = (32 * 1024);
 		break;
-	case BRCM_CC_43430_CHIP_ID:
-		/* assume sr for now as we can not check
-		 * firmware sr capability at this point.
-		 */
-		*srsize = (64 * 1024);
-		break;
 	default:
 		break;
+	}
+}
+
+/** Return the TCM-RAM size of the ARMCR4 core. */
+static u32 brcmf_chip_tcm_ramsize(struct brcmf_core_priv *cr4)
+{
+	u32 corecap;
+	u32 memsize = 0;
+	u32 nab;
+	u32 nbb;
+	u32 totb;
+	u32 bxinfo;
+	u32 idx;
+
+	corecap = brcmf_chip_core_read32(cr4, ARMCR4_CAP);
+
+	nab = (corecap & ARMCR4_TCBANB_MASK) >> ARMCR4_TCBANB_SHIFT;
+	nbb = (corecap & ARMCR4_TCBBNB_MASK) >> ARMCR4_TCBBNB_SHIFT;
+	totb = nab + nbb;
+
+	for (idx = 0; idx < totb; idx++) {
+		brcmf_chip_core_write32(cr4, ARMCR4_BANKIDX, idx);
+		bxinfo = brcmf_chip_core_read32(cr4, ARMCR4_BANKINFO);
+		memsize += ((bxinfo & ARMCR4_BSZ_MASK) + 1) * ARMCR4_BSZ_MULT;
+	}
+
+	return memsize;
+}
+
+static u32 brcmf_chip_tcm_rambase(struct brcmf_chip_priv *ci)
+{
+	switch (ci->pub.chip) {
 	case BRCM_CC_4345_CHIP_ID:
-		ci->pub.ramsize = 0xc8000;
-		ci->pub.rambase = 0x198000;
-		break;
+		return 0x198000;
+	case BRCM_CC_4335_CHIP_ID:
 	case BRCM_CC_4339_CHIP_ID:
 	case BRCM_CC_4354_CHIP_ID:
 	case BRCM_CC_4356_CHIP_ID:
@@ -975,8 +997,6 @@ struct brcmf_chip *brcmf_chip_attach(void *ctx,
 	if (err < 0)
 		goto fail;
 
-	/* assure chip is passive for download */
-	brcmf_chip_set_passive(&chip->pub);
 	return &chip->pub;
 
 fail:
