@@ -1039,13 +1039,9 @@ static int compal_probe(struct platform_device *pdev)
 
 	/* Power supply */
 	initialize_power_supply_data(data);
-	psy_cfg.drv_data = data;
-	data->psy = power_supply_register(&compal_device->dev, &psy_bat_desc,
-					  &psy_cfg);
-	if (IS_ERR(data->psy)) {
-		err = PTR_ERR(data->psy);
+	err = power_supply_register(&compal_device->dev, &data->psy);
+	if (err < 0)
 		goto remove;
-	}
 
 	platform_set_drvdata(pdev, data);
 
