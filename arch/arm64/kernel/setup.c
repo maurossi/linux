@@ -210,20 +210,8 @@ static void __init smp_build_mpidr_hash(void)
 }
 #endif
 
-static void __init hyp_mode_check(void)
-{
-	if (is_hyp_mode_available())
-		pr_info("CPU: All CPU(s) started at EL2\n");
-	else if (is_hyp_mode_mismatched())
-		WARN_TAINT(1, TAINT_CPU_OUT_OF_SPEC,
-			   "CPU: CPUs started in inconsistent modes");
-	else
-		pr_info("CPU: All CPU(s) started at EL1\n");
-}
-
 void __init do_post_cpus_up_work(void)
 {
-	hyp_mode_check();
 	apply_alternatives_all();
 }
 
