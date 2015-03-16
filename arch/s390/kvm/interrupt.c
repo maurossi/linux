@@ -1592,36 +1592,23 @@ static void inti_to_irq(struct kvm_s390_interrupt_info *inti,
 	case KVM_S390_INT_PFAULT_INIT:
 	case KVM_S390_INT_PFAULT_DONE:
 	case KVM_S390_INT_VIRTIO:
+	case KVM_S390_INT_SERVICE:
 		irq->u.ext = inti->ext;
 		break;
 	case KVM_S390_INT_IO_MIN...KVM_S390_INT_IO_MAX:
 		irq->u.io = inti->io;
 		break;
+	case KVM_S390_MCHK:
+		irq->u.mchk = inti->mchk;
+		break;
 	}
 }
-
-void kvm_s390_clear_float_irqs(struct kvm *kvm)
-{
-	struct kvm_s390_float_interrupt *fi = &kvm->arch.float_int;
-	int i;
-
-	spin_lock(&fi->lock);
-	fi->pending_irqs = 0;
-	memset(&fi->srv_signal, 0, sizeof(fi->srv_signal));
-	memset(&fi->mchk, 0, sizeof(fi->mchk));
-	for (i = 0; i < FIRQ_LIST_COUNT; i++)
-		clear_irq_list(&fi->lists[i]);
-	for (i = 0; i < FIRQ_MAX_COUNT; i++)
-		fi->counters[i] = 0;
-	spin_unlock(&fi->lock);
-};
 
 static int get_all_floating_irqs(struct kvm *kvm, u8 __user *usrbuf, u64 len)
 {
 	struct kvm_s390_interrupt_info *inti;
 	struct kvm_s390_float_interrupt *fi;
 	struct kvm_s390_irq *buf;
-	struct kvm_s390_irq *irq;
 	int max_irqs;
 	int ret = 0;
 	int n = 0;
@@ -1641,43 +1628,31 @@ static int get_all_floating_irqs(struct kvm *kvm, u8 __user *usrbuf, u64 len)
 
 	max_irqs = len / sizeof(struct kvm_s390_irq);
 
+	if (len > KVM_S390_FLIC_MAX_BUFFER || len == 0)
+		return -EINVAL;
+
+	/*
+	 * We are already using -ENOMEM to signal
+	 * userspace it may retry with a bigger buffer,
+	 * so we need to use something else for this case
+	 */
+	buf = vzalloc(len);
+	if (!buf)
+		return -ENOBUFS;
+
+	max_irqs = len / sizeof(struct kvm_s390_irq);
+
 	fi = &kvm->arch.float_int;
 	spin_lock(&fi->lock);
-	for (i = 0; i < FIRQ_LIST_COUNT; i++) {
-		list_for_each_entry(inti, &fi->lists[i], list) {
-			if (n == max_irqs) {
-				/* signal userspace to try again */
-				ret = -ENOMEM;
-				goto out;
-			}
-			inti_to_irq(inti, &buf[n]);
-			n++;
-		}
-	}
-	if (test_bit(IRQ_PEND_EXT_SERVICE, &fi->pending_irqs)) {
+	list_for_each_entry(inti, &fi->list, list) {
 		if (n == max_irqs) {
 			/* signal userspace to try again */
 			ret = -ENOMEM;
 			goto out;
 		}
-		irq = (struct kvm_s390_irq *) &buf[n];
-		irq->type = KVM_S390_INT_SERVICE;
-		irq->u.ext = fi->srv_signal;
+		inti_to_irq(inti, &buf[n]);
 		n++;
 	}
-	if (test_bit(IRQ_PEND_MCHK_REP, &fi->pending_irqs)) {
-		if (n == max_irqs) {
-				/* signal userspace to try again */
-				ret = -ENOMEM;
-				goto out;
-		}
-		irq = (struct kvm_s390_irq *) &buf[n];
-		irq->type = KVM_S390_MCHK;
-		irq->u.mchk = fi->mchk;
-		n++;
-}
-
-out:
 	spin_unlock(&fi->lock);
 	if (!ret && n > 0) {
 		if (copy_to_user(usrbuf, buf, sizeof(struct kvm_s390_irq) * n))
