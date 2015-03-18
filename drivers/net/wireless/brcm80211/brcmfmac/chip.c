@@ -600,6 +600,12 @@ static void brcmf_chip_socram_ramsize(struct brcmf_core_priv *sr, u32 *ramsize,
 		if (sr->chip->pub.chiprev < 2)
 			*srsize = (32 * 1024);
 		break;
+	case BRCM_CC_43430_CHIP_ID:
+		/* assume sr for now as we can not check
+		 * firmware sr capability at this point.
+		 */
+		*srsize = (64 * 1024);
+		break;
 	default:
 		break;
 	}
