@@ -36,7 +36,6 @@ static bool nft_rbtree_lookup(const struct nft_set *set, const u32 *key,
 	const struct nft_rbtree *priv = nft_set_priv(set);
 	const struct nft_rbtree_elem *rbe, *interval = NULL;
 	const struct rb_node *parent;
-	u8 genmask = nft_genmask_cur(read_pnet(&set->pnet));
 	int d;
 
 	spin_lock_bh(&nft_rbtree_lock);
@@ -159,15 +158,15 @@ static void *nft_rbtree_deactivate(const struct nft_set *set,
 		else if (d > 0)
 			parent = parent->rb_right;
 		else {
-			if (!nft_set_elem_active(&rbe->ext, genmask)) {
-				parent = parent->rb_left;
-				continue;
-			}
-			nft_set_elem_change_active(set, &rbe->ext);
-			return rbe;
+			elem->cookie = rbe;
+			if (set->flags & NFT_SET_MAP &&
+			    !(rbe->flags & NFT_SET_ELEM_INTERVAL_END))
+				nft_data_copy(&elem->data, rbe->data);
+			elem->flags = rbe->flags;
+			return 0;
 		}
 	}
-	return NULL;
+	return -ENOENT;
 }
 
 static void nft_rbtree_walk(const struct nft_ctx *ctx,
