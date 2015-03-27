@@ -763,18 +763,14 @@ static unsigned int copy_to_bounce_buffer(struct scatterlist *orig_sgl,
 
 			if (cur_dest_sgl->length == PAGE_SIZE) {
 				/* full..move to next entry */
-				kunmap_atomic((void *)bounce_addr);
+				sg_kunmap_atomic(bounce_addr);
 				bounce_addr = 0;
 				j++;
 			}
 
 			/* if we need to use another bounce buffer */
-			if (srclen && bounce_addr == 0) {
-				cur_dest_sgl = sg_next(cur_dest_sgl);
-				bounce_addr = (unsigned long)
-						kmap_atomic(
-						sg_page(cur_dest_sgl));
-			}
+			if (srclen && bounce_addr == 0)
+				bounce_addr = sg_kmap_atomic(bounce_sgl, j);
 
 		}
 
@@ -783,7 +779,7 @@ static unsigned int copy_to_bounce_buffer(struct scatterlist *orig_sgl,
 	}
 
 	if (bounce_addr)
-		kunmap_atomic((void *)bounce_addr);
+		sg_kunmap_atomic(bounce_addr);
 
 	local_irq_restore(flags);
 
