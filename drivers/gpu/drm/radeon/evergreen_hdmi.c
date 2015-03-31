@@ -222,6 +222,10 @@ void evergreen_set_avi_packet(struct radeon_device *rdev, u32 offset,
 	WREG32_P(HDMI_INFOFRAME_CONTROL1 + offset,
 		 HDMI_AVI_INFO_LINE(2),	/* anything other than 0 */
 		 ~HDMI_AVI_INFO_LINE_MASK);
+
+	WREG32_OR(HDMI_INFOFRAME_CONTROL0 + offset,
+		  HDMI_AVI_INFO_SEND |	/* enable AVI info frames */
+		  HDMI_AVI_INFO_CONT);	/* required for audio info values to be updated */
 }
 
 void dce4_hdmi_audio_set_dto(struct radeon_device *rdev,
