@@ -222,10 +222,6 @@ void evergreen_set_avi_packet(struct radeon_device *rdev, u32 offset,
 	WREG32_P(HDMI_INFOFRAME_CONTROL1 + offset,
 		 HDMI_AVI_INFO_LINE(2),	/* anything other than 0 */
 		 ~HDMI_AVI_INFO_LINE_MASK);
-
-	WREG32_OR(HDMI_INFOFRAME_CONTROL0 + offset,
-		  HDMI_AVI_INFO_SEND |	/* enable AVI info frames */
-		  HDMI_AVI_INFO_CONT);	/* required for audio info values to be updated */
 }
 
 void dce4_hdmi_audio_set_dto(struct radeon_device *rdev,
@@ -402,23 +398,13 @@ void evergreen_hdmi_enable(struct drm_encoder *encoder, bool enable)
 		return;
 
 	if (enable) {
-		struct drm_connector *connector = radeon_get_connector_for_encoder(encoder);
-
-		if (connector && drm_detect_monitor_audio(radeon_connector_edid(connector))) {
-			WREG32(HDMI_INFOFRAME_CONTROL0 + dig->afmt->offset,
-			       HDMI_AVI_INFO_SEND | /* enable AVI info frames */
-			       HDMI_AVI_INFO_CONT | /* required for audio info values to be updated */
-			       HDMI_AUDIO_INFO_SEND | /* enable audio info frames (frames won't be set until audio is enabled) */
-			       HDMI_AUDIO_INFO_CONT); /* required for audio info values to be updated */
-			WREG32_OR(AFMT_AUDIO_PACKET_CONTROL + dig->afmt->offset,
-				  AFMT_AUDIO_SAMPLE_SEND);
-		} else {
-			WREG32(HDMI_INFOFRAME_CONTROL0 + dig->afmt->offset,
-			       HDMI_AVI_INFO_SEND | /* enable AVI info frames */
-			       HDMI_AVI_INFO_CONT); /* required for audio info values to be updated */
-			WREG32_AND(AFMT_AUDIO_PACKET_CONTROL + dig->afmt->offset,
-				   ~AFMT_AUDIO_SAMPLE_SEND);
-		}
+		WREG32(HDMI_INFOFRAME_CONTROL0 + dig->afmt->offset,
+		       HDMI_AVI_INFO_SEND | /* enable AVI info frames */
+		       HDMI_AVI_INFO_CONT | /* required for audio info values to be updated */
+		       HDMI_AUDIO_INFO_SEND | /* enable audio info frames (frames won't be set until audio is enabled) */
+		       HDMI_AUDIO_INFO_CONT); /* required for audio info values to be updated */
+		WREG32_OR(AFMT_AUDIO_PACKET_CONTROL + dig->afmt->offset,
+			  AFMT_AUDIO_SAMPLE_SEND);
 	} else {
 		WREG32_AND(AFMT_AUDIO_PACKET_CONTROL + dig->afmt->offset,
 			   ~AFMT_AUDIO_SAMPLE_SEND);
