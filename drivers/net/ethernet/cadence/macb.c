@@ -2160,7 +2160,7 @@ static void macb_configure_caps(struct macb *bp, const struct macb_config *dt_co
 	if (dt_conf)
 		bp->caps = dt_conf->caps;
 
-	if (macb_is_gem_hw(bp->regs)) {
+	if (MACB_BFEXT(IDNUM, macb_readl(bp, MID)) >= 0x2)
 		bp->caps |= MACB_CAPS_MACB_IS_GEM;
 
 		dcfg = gem_readl(bp, DCFG1);
