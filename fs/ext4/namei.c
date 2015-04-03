@@ -2142,7 +2142,7 @@ out_frames:
 static int ext4_add_entry(handle_t *handle, struct dentry *dentry,
 			  struct inode *inode)
 {
-	struct inode *dir = d_inode(dentry->d_parent);
+	struct inode *dir = dentry->d_parent->d_inode;
 	struct buffer_head *bh = NULL;
 	struct ext4_dir_entry_2 *de;
 	struct ext4_dir_entry_tail *t;
