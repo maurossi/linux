@@ -32,6 +32,7 @@
 #include <drm/bridge/ptn3460.h>
 
 #include "exynos_dp_core.h"
+#include "exynos_drm_fimd.h"
 
 #define ctx_from_connector(c)	container_of(c, struct exynos_dp_device, \
 					connector)
@@ -1077,8 +1078,7 @@ static void exynos_dp_poweron(struct exynos_dp_device *dp)
 		}
 	}
 
-	if (crtc->ops->clock_enable)
-		crtc->ops->clock_enable(dp_to_crtc(dp), true);
+	fimd_dp_clock_enable(dp_to_crtc(dp), true);
 
 	clk_prepare_enable(dp->clock);
 	exynos_dp_phy_init(dp);
@@ -1106,8 +1106,7 @@ static void exynos_dp_poweroff(struct exynos_dp_device *dp)
 	exynos_dp_phy_exit(dp);
 	clk_disable_unprepare(dp->clock);
 
-	if (crtc->ops->clock_enable)
-		crtc->ops->clock_enable(dp_to_crtc(dp), false);
+	fimd_dp_clock_enable(dp_to_crtc(dp), false);
 
 	if (dp->panel) {
 		if (drm_panel_unprepare(dp->panel))
