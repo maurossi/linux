@@ -521,6 +521,36 @@ fd_do_prot_fill(struct se_device *se_dev, sector_t lba, sector_t nolb,
 }
 
 static int
+fd_do_prot_fill(struct se_device *se_dev, sector_t lba, sector_t nolb,
+		void *buf, size_t bufsize)
+{
+	struct fd_dev *fd_dev = FD_DEV(se_dev);
+	struct file *prot_fd = fd_dev->fd_prot_file;
+	sector_t prot_length, prot;
+	loff_t pos = lba * se_dev->prot_length;
+
+	if (!prot_fd) {
+		pr_err("Unable to locate fd_dev->fd_prot_file\n");
+		return -ENODEV;
+	}
+
+	prot_length = nolb * se_dev->prot_length;
+
+	for (prot = 0; prot < prot_length;) {
+		sector_t len = min_t(sector_t, bufsize, prot_length - prot);
+		ssize_t ret = kernel_write(prot_fd, buf, len, pos + prot);
+
+		if (ret != len) {
+			pr_err("vfs_write to prot file failed: %zd\n", ret);
+			return ret < 0 ? ret : -ENODEV;
+		}
+		prot += ret;
+	}
+
+	return 0;
+}
+
+static int
 fd_do_prot_unmap(struct se_cmd *cmd, sector_t lba, sector_t nolb)
 {
 	void *buf;
