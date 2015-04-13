@@ -289,15 +289,7 @@ static int fd_do_prot_rw(struct se_cmd *cmd, struct fd_prot *fd_prot,
 			return -ENOMEM;
 		}
 		sg_init_table(fd_prot->prot_sg, fd_prot->prot_sg_nents);
-		size = prot_size;
-
-		for_each_sg(fd_prot->prot_sg, sg, fd_prot->prot_sg_nents, i) {
-
-			len = min_t(u32, PAGE_SIZE, size);
-			sg_set_buf(sg, buf, len);
-			size -= len;
-			buf += len;
-		}
+		sg_set_buf(fd_prot->prot_sg, buf, prot_size);
 	}
 
 	if (is_write) {
