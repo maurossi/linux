@@ -913,12 +913,16 @@ static int load_elf_binary(struct linux_binprm *bprm)
 			 * follow the loader, and is not movable.  */
 			load_bias = ELF_ET_DYN_BASE - vaddr;
 			if (current->flags & PF_RANDOMIZE)
-				load_bias += arch_mmap_rnd();
-			load_bias = ELF_PAGESTART(load_bias);
+				load_bias = 0;
+			else
+				load_bias = ELF_PAGESTART(ELF_ET_DYN_BASE - vaddr);
+#else
+			load_bias = ELF_PAGESTART(ELF_ET_DYN_BASE - vaddr);
+#endif
 			total_size = total_mapping_size(elf_phdata,
 							loc->elf_ex.e_phnum);
 			if (!total_size) {
-				retval = -EINVAL;
+				error = -EINVAL;
 				goto out_free_dentry;
 			}
 		}
