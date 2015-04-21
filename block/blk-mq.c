@@ -1819,13 +1819,6 @@ static void blk_mq_map_swqueue(struct request_queue *q)
 		WARN_ON(!hctx->tags);
 
 		/*
-		 * Set the map size to the number of mapped software queues.
-		 * This is more accurate and more efficient than looping
-		 * over all possibly mapped software queues.
-		 */
-		map->size = DIV_ROUND_UP(hctx->nr_ctx, map->bits_per_word);
-
-		/*
 		 * Initialize batch roundrobin counts
 		 */
 		hctx->next_cpu = cpumask_first(hctx->cpumask);
