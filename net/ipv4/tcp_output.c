@@ -2814,8 +2814,7 @@ begin_fwd:
 
 /* We allow to exceed memory limits for FIN packets to expedite
  * connection tear down and (memory) recovery.
- * Otherwise tcp_send_fin() could be tempted to either delay FIN
- * or even be forced to close flow without any FIN.
+ * Otherwise tcp_send_fin() could loop forever.
  */
 static void sk_forced_wmem_schedule(struct sock *sk, int size)
 {
@@ -2828,8 +2827,8 @@ static void sk_forced_wmem_schedule(struct sock *sk, int size)
 	sk_memory_allocated_add(sk, amt, &status);
 }
 
-/* Send a FIN. The caller locks the socket for us.
- * We should try to send a FIN packet really hard, but eventually give up.
+/* Send a fin.  The caller locks the socket for us.  This cannot be
+ * allowed to fail queueing a FIN frame under any circumstances.
  */
 void tcp_send_fin(struct sock *sk)
 {
@@ -2857,11 +2856,13 @@ coalesce:
 			return;
 		}
 	} else {
-		skb = alloc_skb_fclone(MAX_TCP_HEADER, sk->sk_allocation);
-		if (unlikely(!skb)) {
-			if (tskb)
-				goto coalesce;
-			return;
+		/* Socket is locked, keep trying until memory is available. */
+		for (;;) {
+			skb = alloc_skb_fclone(MAX_TCP_HEADER,
+					       sk->sk_allocation);
+			if (skb)
+				break;
+			yield();
 		}
 		skb_reserve(skb, MAX_TCP_HEADER);
 		sk_forced_wmem_schedule(sk, skb->truesize);
