@@ -462,11 +462,7 @@ static int radeon_uvd_cs_msg(struct radeon_cs_parser *p, struct radeon_bo *bo,
 	case 0:
 		/* it's a create msg, calc image size (width * height) */
 		img_size = msg[7] * msg[8];
-
-		r = radeon_uvd_validate_codec(p, msg[4]);
 		radeon_bo_kunmap(bo);
-		if (r)
-			return r;
 
 		/* try to alloc a new handle */
 		for (i = 0; i < RADEON_MAX_UVD_HANDLES; ++i) {
@@ -486,10 +482,8 @@ static int radeon_uvd_cs_msg(struct radeon_cs_parser *p, struct radeon_bo *bo,
 		return -EINVAL;
 
 	case 1:
-		/* it's a decode msg, validate codec and calc buffer sizes */
-		r = radeon_uvd_validate_codec(p, msg[4]);
-		if (!r)
-			r = radeon_uvd_cs_msg_decode(msg, buf_sizes);
+		/* it's a decode msg, calc buffer sizes */
+		r = radeon_uvd_cs_msg_decode(msg, buf_sizes);
 		radeon_bo_kunmap(bo);
 		if (r)
 			return r;
