@@ -674,40 +674,6 @@ static void domain_update_iommu_cap(struct dmar_domain *domain)
 	domain->iommu_superpage = domain_update_iommu_superpage(NULL);
 }
 
-static inline struct context_entry *iommu_context_addr(struct intel_iommu *iommu,
-						       u8 bus, u8 devfn, int alloc)
-{
-	struct root_entry *root = &iommu->root_entry[bus];
-	struct context_entry *context;
-	u64 *entry;
-
-	if (ecs_enabled(iommu)) {
-		if (devfn >= 0x80) {
-			devfn -= 0x80;
-			entry = &root->hi;
-		}
-		devfn *= 2;
-	}
-	entry = &root->lo;
-	if (*entry & 1)
-		context = phys_to_virt(*entry & VTD_PAGE_MASK);
-	else {
-		unsigned long phy_addr;
-		if (!alloc)
-			return NULL;
-
-		context = alloc_pgtable_page(iommu->node);
-		if (!context)
-			return NULL;
-
-		__iommu_flush_cache(iommu, (void *)context, CONTEXT_SIZE);
-		phy_addr = virt_to_phys((void *)context);
-		*entry = phy_addr | 1;
-		__iommu_flush_cache(iommu, entry, sizeof(*entry));
-	}
-	return &context[devfn];
-}
-
 static int iommu_dummy(struct device *dev)
 {
 	return dev->archdata.iommu == DUMMY_DEVICE_DOMAIN_INFO;
