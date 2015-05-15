@@ -29,8 +29,6 @@ int adis16400_update_scan_mode(struct iio_dev *indio_dev,
 
 	/* All but the timestamp channel */
 	burst_length = (indio_dev->num_channels - 1) * sizeof(u16);
-	if (st->variant->flags & ADIS16400_BURST_DIAG_STAT)
-		burst_length += sizeof(u16);
 
 	adis->xfer = kcalloc(2, sizeof(*adis->xfer), GFP_KERNEL);
 	if (!adis->xfer)
