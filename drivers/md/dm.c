@@ -1979,7 +1979,7 @@ static int map_request(struct dm_rq_target_io *tio, struct request *rq,
 		}
 		if (r != DM_MAPIO_REMAPPED)
 			return r;
-		if (setup_clone(clone, rq, tio, GFP_ATOMIC)) {
+		if (setup_clone(clone, rq, tio, GFP_KERNEL)) {
 			/* -ENOMEM */
 			ti->type->release_clone_rq(clone);
 			return DM_MAPIO_REQUEUE;
