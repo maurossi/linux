@@ -4217,11 +4217,10 @@ action_store(struct mddev *mddev, const char *page, size_t len)
 			set_bit(MD_RECOVERY_FROZEN, &mddev->recovery);
 		else
 			clear_bit(MD_RECOVERY_FROZEN, &mddev->recovery);
-		if (test_bit(MD_RECOVERY_RUNNING, &mddev->recovery) &&
-		    mddev_lock(mddev) == 0) {
-			flush_workqueue(md_misc_wq);
-			if (mddev->sync_thread) {
-				set_bit(MD_RECOVERY_INTR, &mddev->recovery);
+		flush_workqueue(md_misc_wq);
+		if (mddev->sync_thread) {
+			set_bit(MD_RECOVERY_INTR, &mddev->recovery);
+			if (mddev_lock(mddev) == 0) {
 				md_reap_sync_thread(mddev);
 			}
 			mddev_unlock(mddev);
