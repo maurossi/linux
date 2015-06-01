@@ -4330,15 +4330,3 @@ int brcmf_sdio_sleep(struct brcmf_sdio *bus, bool sleep)
 
 	return ret;
 }
-
-int brcmf_sdio_sleep(struct brcmf_sdio *bus, bool sleep)
-{
-	int ret;
-
-	sdio_claim_host(bus->sdiodev->func[1]);
-	ret = brcmf_sdio_bus_sleep(bus, sleep, false);
-	sdio_release_host(bus->sdiodev->func[1]);
-
-	return ret;
-}
-

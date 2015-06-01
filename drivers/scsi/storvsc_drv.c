@@ -774,15 +774,13 @@ static unsigned int copy_to_bounce_buffer(struct scatterlist *orig_sgl,
 				bounce_addr = (unsigned long)
 						kmap_atomic(
 						sg_page(cur_dest_sgl));
+			}
 
 		}
 
 		kunmap_atomic((void *)(src_addr - cur_src_sgl->offset));
 		cur_src_sgl = sg_next(cur_src_sgl);
 	}
-
-	if (bounce_addr)
-		sg_kunmap_atomic(bounce_addr);
 
 	if (bounce_addr)
 		kunmap_atomic((void *)bounce_addr);
