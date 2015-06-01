@@ -3980,7 +3980,7 @@ brcmf_sdio_watchdog(unsigned long data)
 		/* Reschedule the watchdog */
 		if (bus->wd_timer_valid)
 			mod_timer(&bus->timer,
-				  jiffies + BRCMF_WD_POLL_MS * HZ / 1000);
+				  jiffies + msecs_to_jiffies(BRCMF_WD_POLL_MS));
 	}
 }
 
@@ -4306,13 +4306,13 @@ void brcmf_sdio_wd_timer(struct brcmf_sdio *bus, uint wdtick)
 			   dynamically changed or in the first instance
 			 */
 			bus->timer.expires =
-				jiffies + BRCMF_WD_POLL_MS * HZ / 1000;
+				jiffies + msecs_to_jiffies(BRCMF_WD_POLL_MS);
 			add_timer(&bus->timer);
 
 		} else {
 			/* Re arm the timer, at last watchdog period */
 			mod_timer(&bus->timer,
-				jiffies + BRCMF_WD_POLL_MS * HZ / 1000);
+				jiffies + msecs_to_jiffies(BRCMF_WD_POLL_MS));
 		}
 
 		bus->wd_timer_valid = true;
@@ -4330,3 +4330,15 @@ int brcmf_sdio_sleep(struct brcmf_sdio *bus, bool sleep)
 
 	return ret;
 }
+
+int brcmf_sdio_sleep(struct brcmf_sdio *bus, bool sleep)
+{
+	int ret;
+
+	sdio_claim_host(bus->sdiodev->func[1]);
+	ret = brcmf_sdio_bus_sleep(bus, sleep, false);
+	sdio_release_host(bus->sdiodev->func[1]);
+
+	return ret;
+}
+

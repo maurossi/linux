@@ -625,6 +625,7 @@ static bool brcmf_is_ibssmode(struct brcmf_cfg80211_vif *vif)
 
 static struct wireless_dev *brcmf_cfg80211_add_iface(struct wiphy *wiphy,
 						     const char *name,
+						     unsigned char name_assign_type,
 						     enum nl80211_iftype type,
 						     u32 *flags,
 						     struct vif_params *params)
@@ -648,7 +649,7 @@ static struct wireless_dev *brcmf_cfg80211_add_iface(struct wiphy *wiphy,
 	case NL80211_IFTYPE_P2P_CLIENT:
 	case NL80211_IFTYPE_P2P_GO:
 	case NL80211_IFTYPE_P2P_DEVICE:
-		wdev = brcmf_p2p_add_vif(wiphy, name, type, flags, params);
+		wdev = brcmf_p2p_add_vif(wiphy, name, name_assign_type, type, flags, params);
 		if (!IS_ERR(wdev))
 			brcmf_cfg80211_update_proto_addr_mode(wdev);
 		return wdev;
@@ -700,7 +701,7 @@ s32 brcmf_notify_escan_complete(struct brcmf_cfg80211_info *cfg,
 		/* Do a scan abort to stop the driver's scan engine */
 		brcmf_dbg(SCAN, "ABORT scan in firmware\n");
 		memset(&params_le, 0, sizeof(params_le));
-		memset(params_le.bssid, 0xFF, ETH_ALEN);
+		eth_broadcast_addr(params_le.bssid);
 		params_le.bss_type = DOT11_BSSTYPE_ANY;
 		params_le.scan_type = 0;
 		params_le.channel_num = cpu_to_le32(1);
@@ -866,7 +867,7 @@ static void brcmf_escan_prep(struct brcmf_cfg80211_info *cfg,
 	char *ptr;
 	struct brcmf_ssid_le ssid_le;
 
-	memset(params_le->bssid, 0xFF, ETH_ALEN);
+	eth_broadcast_addr(params_le->bssid);
 	params_le->bss_type = DOT11_BSSTYPE_ANY;
 	params_le->scan_type = 0;
 	params_le->channel_num = 0;
@@ -1373,8 +1374,8 @@ brcmf_cfg80211_join_ibss(struct wiphy *wiphy, struct net_device *ndev,
 				   BRCMF_ASSOC_PARAMS_FIXED_SIZE;
 		memcpy(profile->bssid, params->bssid, ETH_ALEN);
 	} else {
-		memset(join_params.params_le.bssid, 0xFF, ETH_ALEN);
-		memset(profile->bssid, 0, ETH_ALEN);
+		eth_broadcast_addr(join_params.params_le.bssid);
+		eth_zero_addr(profile->bssid);
 	}
 
 	/* Channel */
@@ -1848,7 +1849,7 @@ brcmf_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	if (sme->bssid)
 		memcpy(&ext_join_params->assoc_le.bssid, sme->bssid, ETH_ALEN);
 	else
-		memset(&ext_join_params->assoc_le.bssid, 0xFF, ETH_ALEN);
+		eth_broadcast_addr(ext_join_params->assoc_le.bssid);
 
 	if (cfg->channel) {
 		ext_join_params->assoc_le.chanspec_num = cpu_to_le32(1);
@@ -1893,7 +1894,7 @@ brcmf_cfg80211_connect(struct wiphy *wiphy, struct net_device *ndev,
 	if (sme->bssid)
 		memcpy(join_params.params_le.bssid, sme->bssid, ETH_ALEN);
 	else
-		memset(join_params.params_le.bssid, 0xFF, ETH_ALEN);
+		eth_broadcast_addr(join_params.params_le.bssid);
 
 	if (cfg->channel) {
 		join_params.params_le.chanspec_list[0] = cpu_to_le16(chanspec);
@@ -4269,7 +4270,7 @@ brcmf_cfg80211_del_station(struct wiphy *wiphy, struct net_device *ndev,
 		return -EIO;
 
 	memcpy(&scbval.ea, params->mac, ETH_ALEN);
-	scbval.val = cpu_to_le32(WLAN_REASON_DEAUTH_LEAVING);
+	scbval.val = cpu_to_le32(params->reason_code);
 	err = brcmf_fil_cmd_data_set(ifp, BRCMF_C_SCB_DEAUTHENTICATE_FOR_REASON,
 				     &scbval, sizeof(scbval));
 	if (err)

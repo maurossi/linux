@@ -1326,16 +1326,14 @@ static HLIST_HEAD(unmounted);	/* protected by namespace_sem */
 
 static void namespace_unlock(void)
 {
-	struct hlist_head head = unmounted;
+	struct hlist_head head;
 
-	if (likely(hlist_empty(&head))) {
-		up_write(&namespace_sem);
-		return;
-	}
+	hlist_move_list(&unmounted, &head);
 
-	head.first->pprev = &head.first;
-	INIT_HLIST_HEAD(&unmounted);
 	up_write(&namespace_sem);
+
+	if (likely(hlist_empty(&head)))
+		return;
 
 	synchronize_rcu();
 
@@ -1709,8 +1707,11 @@ struct vfsmount *collect_mounts(struct path *path)
 {
 	struct mount *tree;
 	namespace_lock();
-	tree = copy_tree(real_mount(path->mnt), path->dentry,
-			 CL_COPY_ALL | CL_PRIVATE);
+	if (!check_mnt(real_mount(path->mnt)))
+		tree = ERR_PTR(-EINVAL);
+	else
+		tree = copy_tree(real_mount(path->mnt), path->dentry,
+				 CL_COPY_ALL | CL_PRIVATE);
 	namespace_unlock();
 	if (IS_ERR(tree))
 		return ERR_CAST(tree);
@@ -3176,6 +3177,12 @@ bool fs_fully_visible(struct file_system_type *type)
 	list_for_each_entry(mnt, &ns->list, mnt_list) {
 		struct mount *child;
 		if (mnt->mnt.mnt_sb->s_type != type)
+			continue;
+
+		/* This mount is not fully visible if it's root directory
+		 * is not the root directory of the filesystem.
+		 */
+		if (mnt->mnt.mnt_root != mnt->mnt.mnt_sb->s_root)
 			continue;
 
 		/* This mount is not fully visible if there are any child mounts
