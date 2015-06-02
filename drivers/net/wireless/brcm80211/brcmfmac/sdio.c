@@ -773,17 +773,11 @@ brcmf_sdio_kso_control(struct brcmf_sdio *bus, bool on)
 	brcmf_dbg(TRACE, "Enter: on=%d\n", on);
 
 	wr_val = (on << SBSDIO_FUNC1_SLEEPCSR_KSO_SHIFT);
-
-	/* Cannot re-tune if device is asleep */
-	if (on)
-		sdio_retune_hold_now(bus->sdiodev->func[1]);
-
 	/* 1st KSO write goes to AOS wake up core if device is asleep  */
 	brcmf_sdiod_regwb(bus->sdiodev, SBSDIO_FUNC1_SLEEPCSR,
 			  wr_val, &err);
 
 	if (on) {
-		sdio_retune_release(bus->sdiodev->func[1]);
 		/* device WAKEUP through KSO:
 		 * write bit 0 & read back until
 		 * both bits 0 (kso bit) & 1 (dev on status) are set
@@ -3541,13 +3535,8 @@ done:
 
 void brcmf_sdio_trigger_dpc(struct brcmf_sdio *bus)
 {
-<<<<<<< HEAD
 	if (!bus->dpc_triggered) {
 		bus->dpc_triggered = true;
-=======
-	if (atomic_read(&bus->dpc_tskcnt) == 0) {
-		atomic_inc(&bus->dpc_tskcnt);
->>>>>>> brcmfmac: add debugfs file containing revision info
 		queue_work(bus->brcmf_wq, &bus->datawork);
 	}
 }
@@ -3677,11 +3666,6 @@ static void brcmf_sdio_dataworker(struct work_struct *work)
 		bus->idlecount = 0;
 	}
 	bus->dpc_running = false;
-	if (brcmf_sdiod_freezing(bus->sdiodev)) {
-		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DOWN);
-		brcmf_sdiod_try_freeze(bus->sdiodev);
-		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DATA);
-	}
 	if (brcmf_sdiod_freezing(bus->sdiodev)) {
 		brcmf_sdiod_change_state(bus->sdiodev, BRCMF_SDIOD_DOWN);
 		brcmf_sdiod_try_freeze(bus->sdiodev);
