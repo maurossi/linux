@@ -321,6 +321,7 @@ struct writeback_control;
 struct kiocb {
 	struct file		*ki_filp;
 	loff_t			ki_pos;
+	size_t                  ki_nbytes;      /* copy of iocb->aio_nbytes */
 	void (*ki_complete)(struct kiocb *iocb, long ret, long ret2);
 	void			*private;
 	int			ki_flags;
