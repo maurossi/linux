@@ -5291,12 +5291,14 @@ static int be_drv_init(struct be_adapter *adapter)
 	int status = 0;
 
 	mbox_mem_alloc->size = sizeof(struct be_mcc_mailbox) + 16;
-	mbox_mem_alloc->va = dma_zalloc_coherent(dev, mbox_mem_alloc->size,
+	mbox_mem_alloc->va = dma_zalloc_coherent(&adapter->pdev->dev,
+						 mbox_mem_alloc->size,
 						 &mbox_mem_alloc->dma,
 						 GFP_KERNEL);
-	if (!mbox_mem_alloc->va)
-		return -ENOMEM;
-
+	if (!mbox_mem_alloc->va) {
+		status = -ENOMEM;
+		goto unmap_pci_bars;
+	}
 	mbox_mem_align->size = sizeof(struct be_mcc_mailbox);
 	mbox_mem_align->va = PTR_ALIGN(mbox_mem_alloc->va, 16);
 	mbox_mem_align->dma = PTR_ALIGN(mbox_mem_alloc->dma, 16);
