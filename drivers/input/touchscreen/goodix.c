@@ -101,6 +101,9 @@ static int goodix_ts_read_input_report(struct goodix_ts_data *ts, u8 *data)
 		return error;
 	}
 
+	if (!(data[0] & 0x80))
+		return -EAGAIN;
+
 	touch_num = data[0] & 0x0f;
 	if (touch_num > ts->max_touch_num)
 		return -EPROTO;
@@ -365,7 +368,7 @@ static int goodix_ts_probe(struct i2c_client *client,
 					  NULL, goodix_ts_irq_handler,
 					  irq_flags, client->name, ts);
 	if (error) {
-		dev_err(&client->dev, "request IRQ failed: %d\n", error);
+		dev_err(&client->dev, "request IRQ failed: %d.\n", error);
 		return error;
 	}
 
