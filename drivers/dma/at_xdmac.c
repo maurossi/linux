@@ -618,9 +618,6 @@ at_xdmac_prep_slave_sg(struct dma_chan *chan, struct scatterlist *sgl,
 	if (at_xdmac_compute_chan_conf(chan, direction))
 		goto spin_unlock;
 
-	if (at_xdmac_compute_chan_conf(chan, direction))
-		goto spin_unlock;
-
 	/* Prepare descriptors. */
 	for_each_sg(sgl, sg, sg_len, i) {
 		struct at_xdmac_desc	*desc = NULL;
