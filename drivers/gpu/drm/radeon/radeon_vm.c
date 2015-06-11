@@ -488,7 +488,8 @@ int radeon_vm_bo_set_addr(struct radeon_device *rdev,
 				"(bo %p 0x%010lx 0x%010lx)\n", bo_va->bo,
 				soffset, tmp->bo, tmp->it.start, tmp->it.last);
 			mutex_unlock(&vm->mutex);
-			return -EINVAL;
+			r = -EINVAL;
+			goto error_unreserve;
 		}
 	}
 
