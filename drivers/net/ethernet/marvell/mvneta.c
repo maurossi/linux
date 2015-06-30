@@ -311,7 +311,6 @@ struct mvneta_port {
 	unsigned int duplex;
 	unsigned int speed;
 	unsigned int tx_csum_limit;
-	int use_inband_status:1;
 };
 
 /* The mvneta_tx_desc and mvneta_rx_desc structures describe the
