@@ -95,17 +95,11 @@ static int ext4_validate_inode_bitmap(struct super_block *sb,
 	if (!ext4_inode_bitmap_csum_verify(sb, block_group, desc, bh,
 					   EXT4_INODES_PER_GROUP(sb) / 8)) {
 		ext4_unlock_group(sb, block_group);
-		ext4_error(sb, "Corrupt inode bitmap - block_group = %u, "
-			   "inode_bitmap = %llu", block_group, blk);
-		grp = ext4_get_group_info(sb, block_group);
-		if (!EXT4_MB_GRP_IBITMAP_CORRUPT(grp)) {
-			int count;
-			count = ext4_free_inodes_count(sb, desc);
-			percpu_counter_sub(&sbi->s_freeinodes_counter,
-					   count);
-		}
-		set_bit(EXT4_GROUP_INFO_IBITMAP_CORRUPT_BIT, &grp->bb_state);
-		return -EFSBADCRC;
+		ext4_corrupted_block_group(sb, block_group,
+				EXT4_GROUP_INFO_IBITMAP_CORRUPT,
+				"Corrupt inode bitmap - block_group = %u, inode_bitmap = %llu",
+				block_group, blk);
+		return 0;
 	}
 	set_buffer_verified(bh);
 	ext4_unlock_group(sb, block_group);
@@ -336,14 +330,9 @@ out:
 		if (!fatal)
 			fatal = err;
 	} else {
-		ext4_error(sb, "bit already cleared for inode %lu", ino);
-		if (gdp && !EXT4_MB_GRP_IBITMAP_CORRUPT(grp)) {
-			int count;
-			count = ext4_free_inodes_count(sb, gdp);
-			percpu_counter_sub(&sbi->s_freeinodes_counter,
-					   count);
-		}
-		set_bit(EXT4_GROUP_INFO_IBITMAP_CORRUPT_BIT, &grp->bb_state);
+		ext4_corrupted_block_group(sb, block_group,
+				EXT4_GROUP_INFO_IBITMAP_CORRUPT,
+				"bit already cleared for inode %lu", ino);
 	}
 
 error_return:
