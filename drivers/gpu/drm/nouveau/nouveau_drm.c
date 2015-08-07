@@ -23,6 +23,7 @@
  */
 
 #include <linux/console.h>
+#include <linux/delay.h>
 #include <linux/module.h>
 #include <linux/pci.h>
 #include <linux/pm_runtime.h>
@@ -127,6 +128,7 @@ nouveau_cli_destroy(struct nouveau_cli *cli)
 	nvkm_vm_ref(NULL, &nvxx_client(&cli->base)->vm, NULL);
 	nvif_client_fini(&cli->base);
 	usif_client_fini(cli);
+	kfree(cli);
 }
 
 static void
@@ -181,6 +183,7 @@ nouveau_accel_init(struct nouveau_drm *drm)
 			break;
 		case FERMI_CHANNEL_GPFIFO:
 		case KEPLER_CHANNEL_GPFIFO_A:
+		case MAXWELL_CHANNEL_GPFIFO_A:
 			ret = nvc0_fence_create(drm);
 			break;
 		default:
@@ -665,6 +668,7 @@ nouveau_pmops_suspend(struct device *dev)
 	pci_save_state(pdev);
 	pci_disable_device(pdev);
 	pci_set_power_state(pdev, PCI_D3hot);
+	udelay(200);
 	return 0;
 }
 
@@ -862,8 +866,10 @@ nouveau_drm_preclose(struct drm_device *dev, struct drm_file *fpriv)
 
 	pm_runtime_get_sync(dev->dev);
 
+	mutex_lock(&cli->mutex);
 	if (cli->abi16)
 		nouveau_abi16_fini(cli->abi16);
+	mutex_unlock(&cli->mutex);
 
 	mutex_lock(&drm->client.mutex);
 	list_del(&cli->head);

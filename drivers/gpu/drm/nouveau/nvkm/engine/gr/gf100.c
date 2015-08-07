@@ -236,7 +236,7 @@ static int
 gf100_gr_set_shader_exceptions(struct nvkm_object *object, u32 mthd,
 			       void *pdata, u32 size)
 {
-	struct gf100_gr_priv *priv = (void *)nv_engine(object);
+	struct gf100_gr_priv *priv = (void *)object->engine;
 	if (size >= sizeof(u32)) {
 		u32 data = *(u32 *)pdata ? 0xffffffff : 0x00000000;
 		nv_wr32(priv, 0x419e44, data);
@@ -260,8 +260,8 @@ gf100_gr_90c0_omthds[] = {
 
 struct nvkm_oclass
 gf100_gr_sclass[] = {
-	{ 0x902d, &nvkm_object_ofuncs },
-	{ 0x9039, &nvkm_object_ofuncs },
+	{ FERMI_TWOD_A, &nvkm_object_ofuncs },
+	{ FERMI_MEMORY_TO_MEMORY_FORMAT_A, &nvkm_object_ofuncs },
 	{ FERMI_A, &gf100_fermi_ofuncs, gf100_gr_9097_omthds },
 	{ FERMI_COMPUTE_A, &nvkm_object_ofuncs, gf100_gr_90c0_omthds },
 	{}
@@ -663,6 +663,37 @@ gf100_gr_zbc_init(struct gf100_gr_priv *priv)
 		gf100_gr_zbc_clear_depth(priv, index);
 }
 
+/**
+ * Wait until GR goes idle. GR is considered idle if it is disabled by the
+ * MC (0x200) register, or GR is not busy and a context switch is not in
+ * progress.
+ */
+int
+gf100_gr_wait_idle(struct gf100_gr_priv *priv)
+{
+	unsigned long end_jiffies = jiffies + msecs_to_jiffies(2000);
+	bool gr_enabled, ctxsw_active, gr_busy;
+
+	do {
+		/*
+		 * required to make sure FIFO_ENGINE_STATUS (0x2640) is
+		 * up-to-date
+		 */
+		nv_rd32(priv, 0x400700);
+
+		gr_enabled = nv_rd32(priv, 0x200) & 0x1000;
+		ctxsw_active = nv_rd32(priv, 0x2640) & 0x8000;
+		gr_busy = nv_rd32(priv, 0x40060c) & 0x1;
+
+		if (!gr_enabled || (!gr_busy && !ctxsw_active))
+			return 0;
+	} while (time_before(jiffies, end_jiffies));
+
+	nv_error(priv, "wait for idle timeout (en: %d, ctxsw: %d, busy: %d)\n",
+		 gr_enabled, ctxsw_active, gr_busy);
+	return -EAGAIN;
+}
+
 void
 gf100_gr_mmio(struct gf100_gr_priv *priv, const struct gf100_gr_pack *p)
 {
@@ -699,7 +730,13 @@ gf100_gr_icmd(struct gf100_gr_priv *priv, const struct gf100_gr_pack *p)
 
 		while (addr < next) {
 			nv_wr32(priv, 0x400200, addr);
-			nv_wait(priv, 0x400700, 0x00000002, 0x00000000);
+			/**
+			 * Wait for GR to go idle after submitting a
+			 * GO_IDLE bundle
+			 */
+			if ((addr & 0xffff) == 0xe100)
+				gf100_gr_wait_idle(priv);
+			nv_wait(priv, 0x400700, 0x00000004, 0x00000000);
 			addr += init->pitch;
 		}
 	}
@@ -1097,11 +1134,25 @@ gf100_gr_intr(struct nvkm_subdev *subdev)
 	u32 subc = (addr & 0x00070000) >> 16;
 	u32 data = nv_rd32(priv, 0x400708);
 	u32 code = nv_rd32(priv, 0x400110);
-	u32 class = nv_rd32(priv, 0x404200 + (subc * 4));
+	u32 class;
 	int chid;
+
+	if (nv_device(priv)->card_type < NV_E0 || subc < 4)
+		class = nv_rd32(priv, 0x404200 + (subc * 4));
+	else
+		class = 0x0000;
 
 	engctx = nvkm_engctx_get(engine, inst);
 	chid   = pfifo->chid(pfifo, engctx);
+
+	if (stat & 0x00000001) {
+		/*
+		 * notifier interrupt, only needed for cyclestats
+		 * can be safely ignored
+		 */
+		nv_wr32(priv, 0x400100, 0x00000001);
+		stat &= ~0x00000001;
+	}
 
 	if (stat & 0x00000010) {
 		handle = nvkm_handle_get_class(engctx, class);

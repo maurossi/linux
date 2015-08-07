@@ -413,8 +413,8 @@ gf110_disp_base_mthd_base = {
 
 static const struct nv50_disp_mthd_list
 gf110_disp_base_mthd_image = {
-	.mthd = 0x0400,
-	.addr = 0x000400,
+	.mthd = 0x0020,
+	.addr = 0x000020,
 	.data = {
 		{ 0x0400, 0x661400 },
 		{ 0x0404, 0x661404 },
@@ -809,7 +809,7 @@ exec_lookup(struct nv50_disp_priv *priv, int head, int or, u32 ctrl,
 		case 0x00000900: type = DCB_OUTPUT_DP; mask = 2; break;
 		default:
 			nv_error(priv, "unknown SOR mc 0x%08x\n", ctrl);
-			return 0x0000;
+			return NULL;
 		}
 	}
 
