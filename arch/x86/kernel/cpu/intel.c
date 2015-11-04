@@ -262,6 +262,9 @@ static void early_init_intel(struct cpuinfo_x86 *c)
 	/* Penwell and Cloverview have the TSC which doesn't sleep on S3 */
 	if (c->x86 == 6) {
 		switch (c->x86_model) {
+		case INTEL_FAM6_ATOM_SILVERMONT:
+			set_cpu_cap(c, X86_FEATURE_TSC_RELIABLE);
+			/* Fall through */
 		case INTEL_FAM6_ATOM_SALTWELL_MID:
 		case INTEL_FAM6_ATOM_SALTWELL_TABLET:
 		case INTEL_FAM6_ATOM_SILVERMONT_MID:
