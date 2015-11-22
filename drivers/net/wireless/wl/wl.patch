@@ -20,8 +20,6 @@
  
  static char intf_name[IFNAMSIZ] = quote_str(BRCM_WLAN_IFNAME);
  
-diff --git a/drivers/net/wireless/wl/src/wl/sys/wl_linux.c b/drivers/net/wireless/wl/src/wl/sys/wl_linux.c
-index b23face..318ab63 100644
 --- a/drivers/net/wireless/wl/src/wl/sys/wl_linux.c
 +++ b/drivers/net/wireless/wl/src/wl/sys/wl_linux.c
 @@ -2045,8 +2045,8 @@ wl_osl_pcie_rc(struct wl_info *wl, uint op, int param)
@@ -35,3 +33,16 @@ index b23face..318ab63 100644
  }
  
  #if defined(BCMDBG)
+--- a/drivers/net/wireless/wl/src/wl/sys/wl_linux.c
++++ b/drivers/net/wireless/wl/src/wl/sys/wl_linux.c
+@@ -2157,8 +2157,8 @@ wl_start(struct sk_buff *skb, struct net_device *dev)
+ 	wlif = WL_DEV_IF(dev);
+ 	wl = WL_INFO(dev);
+ 
++	skb->prev = NULL;
+ 	if (WL_ALL_PASSIVE_ENAB(wl) || (WL_RTR() && WL_CONFIG_SMP())) {
+-		skb->prev = NULL;
+ 
+ 		TXQ_LOCK(wl);
+ 
+
