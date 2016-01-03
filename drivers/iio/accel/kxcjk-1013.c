@@ -425,6 +425,7 @@ static int kiox010a_dsm(struct device *dev, int fn_index)
 
 static const struct acpi_device_id kx_acpi_match[] = {
 	{"KXCJ1013", KXCJK1013},
+	{"KIOX000A", KXCJ91008},
 	{"KXCJ1008", KXCJ91008},
 	{"KXCJ9000", KXCJ91008},
 	{"KIOX0008", KXCJ91008},
