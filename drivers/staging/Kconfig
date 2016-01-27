@@ -132,4 +132,6 @@ source "drivers/staging/mt7621-eth/Kconfig"
 
 source "drivers/staging/mt7621-dts/Kconfig"
 
+source "drivers/staging/gslx680/Kconfig"
+
 endif # STAGING
