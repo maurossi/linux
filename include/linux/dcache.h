@@ -162,6 +162,7 @@ struct dentry_operations {
 	struct dentry *(*d_real)(struct dentry *, enum d_real_type type);
 	bool (*d_unalias_trylock)(const struct dentry *);
 	void (*d_unalias_unlock)(const struct dentry *);
+	void (*d_canonical_path)(const struct path *, struct path *);
 } ____cacheline_aligned;
 
 /*
