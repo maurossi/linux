@@ -44,6 +44,8 @@ KCOV_INSTRUMENT		:= n
 
 CFLAGS_irq.o := -I$(src)/../include/asm/trace
 
+CFLAGS_REMOVE_SSEPlus_float_REF.o += -mno-sse -mno-mmx -mno-sse2 -msoft-float
+
 obj-y			:= process_$(BITS).o signal.o
 obj-$(CONFIG_COMPAT)	+= signal_compat.o
 obj-y			+= traps.o idt.o irq.o irq_$(BITS).o dumpstack_$(BITS).o
@@ -63,6 +65,7 @@ obj-y			+= tsc.o tsc_msr.o io_delay.o rtc.o
 obj-y			+= pci-iommu_table.o
 obj-y			+= resource.o
 obj-y			+= irqflags.o
+obj-y			+= SSEPlus_float_REF.o SSEPlus_ssse3_REF.o SSEPlus_sse4_REF.o SSEPlus_utils.o
 
 obj-y				+= process.o
 obj-y				+= fpu/
