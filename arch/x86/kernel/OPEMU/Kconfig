@@ -1,0 +1,3 @@
+config OPEMU
+	tristate "OPEMU opcode emulator"
+	depends on X86_64
