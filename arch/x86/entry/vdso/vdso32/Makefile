@@ -14,6 +14,7 @@ vobjs-y			+= system_call.o sigreturn.o
 flags-y			:= -DBUILD_VDSO32 -m32 -mregparm=0
 flags-$(CONFIG_X86_64)	+= -include $(src)/fake_32bit_build.h
 flags-remove-y          := -m64
+flags-remove-y          := -mfentry
 
 # The location of this include matters!
 include $(src)/../common/Makefile.include
