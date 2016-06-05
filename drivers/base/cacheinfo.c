@@ -202,7 +202,7 @@ static int cache_setup_of_node(unsigned int cpu)
 
 	np = of_cpu_device_node_get(cpu);
 	if (!np) {
-		pr_err("Failed to find cpu%d device node\n", cpu);
+		pr_debug("Failed to find cpu%d device node\n", cpu);
 		return -ENOENT;
 	}
 
