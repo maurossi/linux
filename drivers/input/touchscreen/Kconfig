@@ -1399,4 +1399,16 @@ config TOUCHSCREEN_HIMAX_HX83112B
 	  To compile this driver as a module, choose M here: the
 	  module will be called himax_hx83112b.
 
+config TOUCHSCREEN_NWFERMI
+	tristate "NextWindow touchscreen"
+	depends on USB
+	help
+	  Say Y here if you have the NextWindow touchscreen connected to
+	  your system.
+
+	  If unsure, say N.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called nw-fermi.
+
 endif
