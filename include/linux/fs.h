@@ -1828,16 +1828,29 @@ bool inode_owner_or_capable(struct user_namespace *mnt_userns,
  */
 int vfs_create(struct user_namespace *, struct inode *,
 	       struct dentry *, umode_t, bool);
+int vfs_create2(struct vfsmount *, struct user_namespace *, struct inode *,
+	       struct dentry *, umode_t, bool);
 int vfs_mkdir(struct user_namespace *, struct inode *,
+	      struct dentry *, umode_t);
+int vfs_mkdir2(struct vfsmount *, struct user_namespace *, struct inode *,
 	      struct dentry *, umode_t);
 int vfs_mknod(struct user_namespace *, struct inode *, struct dentry *,
               umode_t, dev_t);
+int vfs_mknod2(struct vfsmount *, struct user_namespace *, struct inode *, struct dentry *,
+              umode_t, dev_t);
 int vfs_symlink(struct user_namespace *, struct inode *,
+		struct dentry *, const char *);
+int vfs_symlink2(struct vfsmount *, struct user_namespace *, struct inode *,
 		struct dentry *, const char *);
 int vfs_link(struct dentry *, struct user_namespace *, struct inode *,
 	     struct dentry *, struct inode **);
+int vfs_link2(struct vfsmount *, struct dentry *, struct user_namespace *, struct inode *,
+	     struct dentry *, struct inode **);
 int vfs_rmdir(struct user_namespace *, struct inode *, struct dentry *);
+int vfs_rmdir2(struct vfsmount *, struct user_namespace *, struct inode *, struct dentry *);
 int vfs_unlink(struct user_namespace *, struct inode *, struct dentry *,
+	       struct inode **);
+int vfs_unlink2(struct vfsmount *, struct user_namespace *, struct inode *, struct dentry *,
 	       struct inode **);
 
 /**
@@ -1863,6 +1876,7 @@ struct renamedata {
 } __randomize_layout;
 
 int vfs_rename(struct renamedata *);
+int vfs_rename2(struct vfsmount *, struct renamedata *);
 
 static inline int vfs_whiteout(struct user_namespace *mnt_userns,
 			       struct inode *dir, struct dentry *dentry)
@@ -1875,6 +1889,9 @@ struct dentry *vfs_tmpfile(struct user_namespace *mnt_userns,
 			   struct dentry *dentry, umode_t mode, int open_flag);
 
 int vfs_mkobj(struct dentry *, umode_t,
+		int (*f)(struct dentry *, umode_t, void *),
+		void *);
+int vfs_mkobj2(struct vfsmount *, struct dentry *, umode_t,
 		int (*f)(struct dentry *, umode_t, void *),
 		void *);
 
@@ -2001,6 +2018,7 @@ struct inode_operations {
 	struct dentry * (*lookup) (struct inode *,struct dentry *, unsigned int);
 	const char * (*get_link) (struct dentry *, struct inode *, struct delayed_call *);
 	int (*permission) (struct user_namespace *, struct inode *, int);
+	int (*permission2) (struct vfsmount *, struct user_namespace *, struct inode *, int);
 	struct posix_acl * (*get_acl)(struct inode *, int, bool);
 
 	int (*readlink) (struct dentry *, char __user *,int);
@@ -2760,15 +2778,26 @@ int notify_change(struct user_namespace *, struct dentry *,
 int notify_change2(struct vfsmount *, struct user_namespace *, struct dentry *,
 		  struct iattr *, struct inode **);
 int inode_permission(struct user_namespace *, struct inode *, int);
+int inode_permission2(struct vfsmount *, struct user_namespace *, struct inode *, int);
 int generic_permission(struct user_namespace *, struct inode *, int);
 static inline int file_permission(struct file *file, int mask)
 {
 	return inode_permission(file_mnt_user_ns(file),
 				file_inode(file), mask);
 }
+static inline int file_permission2(struct vfsmount *mnt, struct file *file, int mask)
+{
+	return inode_permission2(mnt, file_mnt_user_ns(file),
+				file_inode(file), mask);
+}
 static inline int path_permission(const struct path *path, int mask)
 {
 	return inode_permission(mnt_user_ns(path->mnt),
+				d_inode(path->dentry), mask);
+}
+static inline int path_permission2(struct vfsmount *mnt, const struct path *path, int mask)
+{
+	return inode_permission2(mnt, mnt_user_ns(path->mnt),
 				d_inode(path->dentry), mask);
 }
 int __check_sticky(struct user_namespace *mnt_userns, struct inode *dir,
