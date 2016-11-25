@@ -183,8 +183,41 @@ out:
 	return ret;
 }
 
+/* This function gets called once from pwmchip_add to get the initial state */
+static void pwm_lpss_get_state(struct pwm_chip *chip, struct pwm_device *pwm,
+			       struct pwm_state *state)
+{
+	struct pwm_lpss_chip *lpwm = to_lpwm(chip);
+	unsigned long base_unit_range;
+	unsigned long long base_unit, freq, on_time_div;
+	u32 ctrl;
+
+	base_unit_range = BIT(lpwm->info->base_unit_bits);
+
+	ctrl = pwm_lpss_read(pwm);
+	on_time_div = 255 - (ctrl & PWM_ON_TIME_DIV_MASK);
+	base_unit = (ctrl >> PWM_BASE_UNIT_SHIFT) & (base_unit_range - 1);
+
+	freq = base_unit * lpwm->info->clk_rate;
+	do_div(freq, base_unit_range);
+	if (freq == 0)
+		state->period = NSEC_PER_SEC;
+	else
+		state->period = NSEC_PER_SEC / (unsigned long)freq;
+
+	on_time_div *= state->period;
+	do_div(on_time_div, 255);
+	state->duty_cycle = on_time_div;
+
+	state->polarity = PWM_POLARITY_NORMAL;
+	state->enabled = !!(ctrl & PWM_ENABLE);
+
+	pwm_lpss_get_put_runtime_pm(chip, false, state->enabled);
+}
+
 static const struct pwm_ops pwm_lpss_ops = {
 	.apply = pwm_lpss_apply,
+	.get_state = pwm_lpss_get_state,
 	.owner = THIS_MODULE,
 };
 
