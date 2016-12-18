@@ -5,7 +5,7 @@ WL_ARCH_CHANGED := $(if $(shell file $(WL_PATH)/lib/wlc_hybrid.o_shipped | grep 
 WL_SRC := $(WL_PATH)/hybrid-v35$(if $(filter x86,$(TARGET_KERNEL_ARCH)),,_64)-nodebug-pcoem-6_30_223_271.tar.gz
 $(WL_SRC):
 	@echo Downloading $(@F)...
-	$(hide) curl http://www.broadcom.com/docs/linux_sta/$(@F) > $@
+	$(hide) curl https://docs.broadcom.com/docs-and-downloads/docs/linux_sta/$(@F) > $@
 
 $(WL_PATH)/Makefile : $(WL_SRC) $(wildcard $(WL_PATH)/*.patch) $(WL_ARCH_CHANGED) $(KERNEL_ARCH_CHANGED)
 	$(hide) tar zxf $< -C $(@D) --overwrite && \
