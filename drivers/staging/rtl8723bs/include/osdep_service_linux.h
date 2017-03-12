@@ -15,6 +15,7 @@
 #ifndef __OSDEP_LINUX_SERVICE_H_
 #define __OSDEP_LINUX_SERVICE_H_
 
+	#include <linux/version.h>
 	#include <linux/spinlock.h>
 	#include <linux/compiler.h>
 	#include <linux/kernel.h>
@@ -48,6 +49,10 @@
 /* 	#include <linux/ieee80211.h> */
         #include <net/ieee80211_radiotap.h>
 	#include <net/cfg80211.h>
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	#include <linux/sched/signal.h>
+#endif
 
 	typedef struct	semaphore _sema;
 	typedef	spinlock_t	_lock;
