@@ -117,6 +117,10 @@
 	#include <linux/netlink.h>
 #endif //CONFIG_BT_COEXIST_SOCKET_TRX
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 11, 0))
+	#include <linux/sched/signal.h>
+#endif
+
 #ifdef CONFIG_USB_HCI
 	typedef struct urb *  PURB;
 #if (LINUX_VERSION_CODE>=KERNEL_VERSION(2,6,22))
