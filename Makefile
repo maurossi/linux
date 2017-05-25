@@ -427,7 +427,7 @@ OBJSIZE		= llvm-size
 STRIP		= llvm-strip
 else
 CC		= $(CROSS_COMPILE)gcc
-LD		= $(CROSS_COMPILE)ld
+LD		= $(CROSS_COMPILE)ld$(if $(wildcard $(lastword $(CROSS_COMPILE))ld.bfd),.bfd)
 AR		= $(CROSS_COMPILE)ar
 NM		= $(CROSS_COMPILE)nm
 OBJCOPY		= $(CROSS_COMPILE)objcopy
