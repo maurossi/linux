@@ -129,43 +129,58 @@ static inline void pwm_lpss_cond_enable(struct pwm_device *pwm, bool cond)
 		pwm_lpss_write(pwm, pwm_lpss_read(pwm) | PWM_ENABLE);
 }
 
+static void pwm_lpss_get_put_runtime_pm(struct pwm_chip *chip,
+					bool old_enabled, bool new_enabled)
+{
+	if (new_enabled == old_enabled)
+		return;
+
+	if (new_enabled)
+		pm_runtime_get(chip->dev);
+	else
+		pm_runtime_put(chip->dev);
+}
+
 static int pwm_lpss_apply(struct pwm_chip *chip, struct pwm_device *pwm,
 			  struct pwm_state *state)
 {
 	struct pwm_lpss_chip *lpwm = to_lpwm(chip);
-	int ret;
+	int ret = 0;
+
+	pm_runtime_get_sync(chip->dev);
 
 	if (state->enabled) {
 		if (!pwm_is_enabled(pwm)) {
-			pm_runtime_get_sync(chip->dev);
 			ret = pwm_lpss_is_updating(pwm);
-			if (ret) {
-				pm_runtime_put(chip->dev);
-				return ret;
-			}
+			if (ret)
+				goto out;
+
 			pwm_lpss_prepare(lpwm, pwm, state->duty_cycle, state->period);
 			pwm_lpss_write(pwm, pwm_lpss_read(pwm) | PWM_SW_UPDATE);
 			pwm_lpss_cond_enable(pwm, lpwm->info->bypass == false);
 			ret = pwm_lpss_wait_for_update(pwm);
-			if (ret) {
-				pm_runtime_put(chip->dev);
-				return ret;
-			}
+			if (ret)
+				goto out;
+
 			pwm_lpss_cond_enable(pwm, lpwm->info->bypass == true);
 		} else {
 			ret = pwm_lpss_is_updating(pwm);
 			if (ret)
-				return ret;
+				goto out;
+
 			pwm_lpss_prepare(lpwm, pwm, state->duty_cycle, state->period);
 			pwm_lpss_write(pwm, pwm_lpss_read(pwm) | PWM_SW_UPDATE);
-			return pwm_lpss_wait_for_update(pwm);
+			ret = pwm_lpss_wait_for_update(pwm);
 		}
 	} else if (pwm_is_enabled(pwm)) {
 		pwm_lpss_write(pwm, pwm_lpss_read(pwm) & ~PWM_ENABLE);
-		pm_runtime_put(chip->dev);
 	}
 
-	return 0;
+	pwm_lpss_get_put_runtime_pm(chip, pwm_is_enabled(pwm), state->enabled);
+
+out:
+	pm_runtime_put(chip->dev);
+	return ret;
 }
 
 static const struct pwm_ops pwm_lpss_ops = {
@@ -214,6 +229,10 @@ EXPORT_SYMBOL_GPL(pwm_lpss_probe);
 
 int pwm_lpss_remove(struct pwm_lpss_chip *lpwm)
 {
+	bool enabled = pwm_is_enabled(&lpwm->chip.pwms[0]);
+
+	pwm_lpss_get_put_runtime_pm(&lpwm->chip, enabled, false);
+
 	return pwmchip_remove(&lpwm->chip);
 }
 EXPORT_SYMBOL_GPL(pwm_lpss_remove);
