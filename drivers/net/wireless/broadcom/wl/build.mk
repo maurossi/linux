@@ -12,6 +12,7 @@ $(WL_LIB): $(WL_SRC) $(wildcard $(WL_PATH)/*.patch)
 		rm -rf $@ && mv $(@D)/lib $@ && touch $@ && \
 		patch -p1 -d $(@D) -i wl.patch && \
 		patch -p1 -d $(@D) -i linux-recent.patch && \
-		patch -p1 -d $(@D) -i linux-48.patch
+		patch -p1 -d $(@D) -i linux-48.patch && \
+		patch -p1 -d $(@D) -i linux-411.patch
 
 $(INSTALLED_KERNEL_TARGET): $(if $(WL_ENABLED),$(WL_LIB))
