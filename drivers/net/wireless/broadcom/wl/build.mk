@@ -10,6 +10,7 @@ $(WL_SRC):
 $(WL_PATH)/Makefile : $(WL_SRC) $(wildcard $(WL_PATH)/*.patch) $(WL_ARCH_CHANGED) $(KERNEL_ARCH_CHANGED)
 	$(hide) tar zxf $< -C $(@D) --overwrite && \
 		patch -p1 -d $(@D) -i wl.patch && \
-		patch -p1 -d $(@D) -i linux-recent.patch
+		patch -p1 -d $(@D) -i linux-recent.patch && \
+		patch -p1 -d $(@D) -i linux-48.patch
 
 $(INSTALLED_KERNEL_TARGET): $(if $(WL_ENABLED),$(WL_PATH)/Makefile)
