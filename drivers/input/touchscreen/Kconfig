@@ -1379,4 +1379,14 @@ config TOUCHSCREEN_NWFERMI
 	  To compile this driver as a module, choose M here: the
 	  module will be called nw-fermi.
 
+config TOUCHSCREEN_DWAV_USB_MT
+	tristate "D-WAV Scientific USB(HID) MultiTouch Screen Driver"
+	depends on USB
+	help
+	  Say Y here if you have a D-WAV Scientific USB(HID) MultiTouch Screen
+	  connected to your system.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called dwav-usb-mt.
+
 endif
