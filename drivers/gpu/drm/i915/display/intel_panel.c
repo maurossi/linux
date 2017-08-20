@@ -1288,12 +1288,21 @@ static void intel_panel_set_backlight(const struct drm_connector_state *conn_sta
 				      u32 user_level, u32 user_max)
 {
 	struct intel_connector *connector = to_intel_connector(conn_state->connector);
+	struct intel_crtc *crtc = to_intel_crtc(conn_state->crtc);
+	struct intel_crtc_state *crtc_state = to_intel_crtc_state(crtc->base.state);
 	struct drm_i915_private *dev_priv = to_i915(connector->base.dev);
 	struct intel_panel *panel = &connector->panel;
 	u32 hw_level;
 
 	if (!panel->backlight.present)
 		return;
+
+	// HACK: Turn off display completely when brightness is set to 0
+	if (user_level == 0 && panel->backlight.enabled) {
+		intel_panel_disable_backlight(conn_state);
+	} else if (!panel->backlight.enabled) {
+		intel_panel_enable_backlight(crtc_state, conn_state);
+	}
 
 	mutex_lock(&dev_priv->backlight_lock);
 
