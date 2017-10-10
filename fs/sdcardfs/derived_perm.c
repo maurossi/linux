@@ -55,9 +55,9 @@ void get_derived_permission_new(struct dentry *parent, struct dentry *dentry,
 				const struct qstr *name)
 {
 	struct sdcardfs_inode_info *info = SDCARDFS_I(d_inode(dentry));
-	struct sdcardfs_inode_info *parent_info = SDCARDFS_I(d_inode(parent));
+	struct sdcardfs_inode_info *parent_info = SDCARDFS_I(parent->d_inode);
 	struct sdcardfs_inode_data *parent_data = parent_info->data;
-	appid_t appid;
+	kuid_t appid;
 	unsigned long user_num;
 	int err;
 	struct qstr q_Android = QSTR_LITERAL("Android");
@@ -130,10 +130,12 @@ void get_derived_permission_new(struct dentry *parent, struct dentry *dentry,
 	case PERM_ANDROID_DATA:
 	case PERM_ANDROID_MEDIA:
 		info->data->perm = PERM_ANDROID_PACKAGE;
-		appid = get_appid(name->name);
-		if (appid != 0 && !is_excluded(name->name, parent_data->userid))
+		appid = pkglist_get_allowed_appid(name->name, parent_data->userid);
+		if (uid_valid(appid))
 			info->data->d_uid =
-				multiuser_get_uid(parent_data->userid, appid);
+				multiuser_get_uid(parent_data->userid, appid.val);
+		else
+			info->data->d_uid = 0;
 		break;
 	case PERM_ANDROID_PACKAGE:
 		if (qstr_case_eq(name, &q_cache)) {
@@ -153,12 +155,12 @@ void get_derived_permission(struct dentry *parent, struct dentry *dentry)
 static appid_t get_type(const char *name)
 {
 	const char *ext = strrchr(name, '.');
-	appid_t id;
+	kgid_t id;
 
 	if (ext && ext[0]) {
 		ext = &ext[1];
-		id = get_ext_gid(ext);
-		return id?:AID_MEDIA_RW;
+		id = pkglist_get_ext_gid(ext);
+		return gid_valid(id)?id.val:AID_MEDIA_RW;
 	}
 	return AID_MEDIA_RW;
 }

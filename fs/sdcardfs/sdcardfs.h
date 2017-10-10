@@ -48,6 +48,7 @@
 #include <linux/list.h>
 #include <linux/iversion.h>
 #include <uapi/linux/mount.h>
+#include <linux/pkglist.h>
 #include "multiuser.h"
 
 /* the file system name */
@@ -496,16 +497,11 @@ extern struct mutex sdcardfs_super_list_lock;
 extern struct list_head sdcardfs_super_list;
 
 /* for packagelist.c */
-extern appid_t get_appid(const char *app_name);
-extern appid_t get_ext_gid(const char *app_name);
-extern appid_t is_excluded(const char *app_name, userid_t userid);
 extern int check_caller_access_to_name(struct inode *parent_node, const struct qstr *name);
 extern int packagelist_init(void);
 extern void packagelist_exit(void);
 
 /* for derived_perm.c */
-#define BY_NAME		(1 << 0)
-#define BY_USERID	(1 << 1)
 struct limit_search {
 	unsigned int flags;
 	struct qstr name;
@@ -642,22 +638,5 @@ static inline void sdcardfs_copy_and_fix_attrs(struct inode *dest, const struct 
 	dest->i_flags = src->i_flags;
 	set_nlink(dest, src->i_nlink);
 }
-
-static inline bool str_case_eq(const char *s1, const char *s2)
-{
-	return !strcasecmp(s1, s2);
-}
-
-static inline bool str_n_case_eq(const char *s1, const char *s2, size_t len)
-{
-	return !strncasecmp(s1, s2, len);
-}
-
-static inline bool qstr_case_eq(const struct qstr *q1, const struct qstr *q2)
-{
-	return q1->len == q2->len && str_n_case_eq(q1->name, q2->name, q2->len);
-}
-
-#define QSTR_LITERAL(string) QSTR_INIT(string, sizeof(string)-1)
 
 #endif	/* not _SDCARDFS_H_ */
