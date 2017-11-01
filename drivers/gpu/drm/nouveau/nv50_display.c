@@ -4399,8 +4399,8 @@ nv50_display_destroy(struct drm_device *dev)
 	kfree(disp);
 }
 
-MODULE_PARM_DESC(atomic, "Expose atomic ioctl (default: disabled)");
-static int nouveau_atomic = 0;
+MODULE_PARM_DESC(atomic, "Expose atomic ioctl (default: enabled)");
+static int nouveau_atomic = 1;
 module_param_named(atomic, nouveau_atomic, int, 0400);
 
 int
