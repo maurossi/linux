@@ -655,8 +655,11 @@ static void rps_set_power(struct intel_rps *rps, int new_power)
 	/* When byt can survive without system hang with dynamic
 	 * sw freq adjustments, this restriction can be lifted.
 	 */
-	if (IS_VALLEYVIEW(gt->i915))
+	if (IS_VALLEYVIEW(gt->i915)) {
+		threshold_up = VLV_RP_UP_EI_THRESHOLD;
+		threshold_down = VLV_RP_DOWN_EI_THRESHOLD;
 		goto skip_hw_write;
+	}
 
 	GT_TRACE(gt,
 		 "changing power mode [%d], up %d%% @ %dus, down %d%% @ %dus\n",
