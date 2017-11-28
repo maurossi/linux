@@ -1,0 +1,18 @@
+diff --git a/src/wl/sys/wl_linux.c b/src/wl/sys/wl_linux.c
+index 1270d6da22ba..ec120cf7d74c 100644
+--- a/src/wl/sys/wl_linux.c
++++ b/src/wl/sys/wl_linux.c
+@@ -2355,9 +2355,13 @@ wl_init_timer(wl_info_t *wl, void (*fn)(void *arg), void *arg, const char *tname
+ 
+ 	bzero(t, sizeof(wl_timer_t));
+ 
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 15, 0)
++	timer_setup(&t->timer, wl_timer, 0);
++#else
+ 	init_timer(&t->timer);
+ 	t->timer.data = (ulong) t;
+ 	t->timer.function = wl_timer;
++#endif
+ 	t->wl = wl;
+ 	t->fn = fn;
+ 	t->arg = arg;
