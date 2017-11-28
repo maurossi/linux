@@ -14,6 +14,7 @@ $(WL_LIB): $(WL_SRC) $(wildcard $(WL_PATH)/*.patch)
 		patch -p1 -d $(@D) -i linux-recent.patch && \
 		patch -p1 -d $(@D) -i linux-48.patch && \
 		patch -p1 -d $(@D) -i linux-411.patch && \
-		patch -p1 -d $(@D) -i linux-412.patch
+		patch -p1 -d $(@D) -i linux-412.patch && \
+		patch -p1 -d $(@D) -i linux-415.patch
 
 $(INSTALLED_KERNEL_TARGET): $(if $(WL_ENABLED),$(WL_LIB))
