@@ -455,6 +455,8 @@ static void mwifiex_pcie_remove(struct pci_dev *pdev)
 		mwifiex_init_shutdown_fw(priv, MWIFIEX_FUNC_SHUTDOWN);
 	}
 
+	cancel_work_sync(&card->work);
+
 	mwifiex_remove_card(adapter);
 }
 
