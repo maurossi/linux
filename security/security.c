@@ -1971,6 +1971,7 @@ int security_path_chown(const struct path *path, kuid_t uid, kgid_t gid)
 		return 0;
 	return call_int_hook(path_chown, path, uid, gid);
 }
+EXPORT_SYMBOL(security_path_chown);
 
 /**
  * security_path_chroot() - Check if changing the root directory is allowed
