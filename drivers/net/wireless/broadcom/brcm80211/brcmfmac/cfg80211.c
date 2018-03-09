@@ -2696,6 +2696,8 @@ brcmf_cfg80211_set_power_mgmt(struct wiphy *wiphy, struct net_device *ndev,
 
 	brcmf_dbg(TRACE, "Enter\n");
 
+	enabled = false;
+
 	/*
 	 * Powersave enable/disable request is coming from the
 	 * cfg80211 even before the interface is up. In that
