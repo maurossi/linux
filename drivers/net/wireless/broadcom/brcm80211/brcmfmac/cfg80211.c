@@ -739,11 +739,17 @@ static struct wireless_dev *brcmf_cfg80211_add_iface(struct wiphy *wiphy,
 		return ERR_PTR(-EINVAL);
 	}
 
-	if (IS_ERR(wdev))
-		bphy_err(drvr, "add iface %s type %d failed: err=%d\n", name,
-			 type, (int)PTR_ERR(wdev));
-	else
+	if (IS_ERR(wdev)) {
+		err = PTR_ERR(wdev);
+		if (err != -EBUSY)
+			bphy_err(drvr, "add iface %s type %d failed: err=%d\n", name,
+				 type, err);
+		else
+			brcmf_dbg(INFO, "add iface %s type %d failed: err=%d\n",
+				  name, type, err);
+	} else {
 		brcmf_cfg80211_update_proto_addr_mode(wdev);
+	}
 
 	return wdev;
 }

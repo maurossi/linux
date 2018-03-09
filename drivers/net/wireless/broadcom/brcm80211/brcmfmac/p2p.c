@@ -2185,7 +2185,10 @@ static struct wireless_dev *brcmf_p2p_create_p2pdev(struct brcmf_p2p_info *p2p,
 	/* Initialize P2P Discovery in the firmware */
 	err = brcmf_fil_iovar_int_set(pri_ifp, "p2p_disc", 1);
 	if (err < 0) {
-		bphy_err(drvr, "set p2p_disc error\n");
+		if (err != -EBUSY)
+			bphy_err(drvr, "set p2p_disc error\n");
+		else
+			brcmf_dbg(INFO, "set p2p_disc error\n");
 		brcmf_fweh_p2pdev_setup(pri_ifp, false);
 		brcmf_cfg80211_arm_vif_event(p2p->cfg, NULL);
 		goto fail;
