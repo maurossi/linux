@@ -14,6 +14,7 @@
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <linux/efi.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
 #include <linux/device.h>
@@ -445,6 +446,83 @@ struct brcmf_fw {
 
 static void brcmf_fw_request_done(const struct firmware *fw, void *ctx);
 
+#ifdef CONFIG_EFI
+static const char * const ccode_fixup_map[][2] = {
+	{ "brcm/brcmfmac43241b4-sdio.txt", "XV\n" },
+	{ "brcm/brcmfmac43340-sdio.txt", "X2\n" },
+};
+
+static u8 *brcmf_fw_nvram_from_efi(const char *path, size_t *data_len_ret)
+{
+	const u16 name[] = { 'n', 'v', 'r', 'a', 'm', 0 };
+	struct efivar_entry *nvram_efivar;
+	unsigned long data_len = 0;
+	const char *val = NULL;
+	u8 *data = NULL;
+	char *ccode;
+	int i, err;
+
+	nvram_efivar = kzalloc(sizeof(*nvram_efivar), GFP_KERNEL);
+	if (!nvram_efivar)
+		return NULL;
+
+	memcpy(&nvram_efivar->var.VariableName, name, sizeof(name));
+	nvram_efivar->var.VendorGuid = EFI_GUID(0x74b00bd9, 0x805a, 0x4d61,
+						0xb5, 0x1f, 0x43, 0x26,
+						0x81, 0x23, 0xd1, 0x13);
+
+	err = efivar_entry_size(nvram_efivar, &data_len);
+	if (err)
+		goto fail;
+
+	data = kmalloc(data_len, GFP_KERNEL);
+	if (!data)
+		goto fail;
+
+	err = efivar_entry_get(nvram_efivar, NULL, &data_len, data);
+	if (err)
+		goto fail;
+
+	/* In some cases the EFI-var stored nvram contains "ccode=ALL" or
+	 * "ccode=XV" to specify "worldwide" compatible settings. ccode=ALL is
+	 * not understood by the firmware and some of the firmware files in
+	 * linux-firmware support only 2.4 GHz and not 5 GHz when ccode=XV.
+	 */
+	ccode = strnstr((char *)data, "ccode=ALL", data_len);
+	if (!ccode)
+		ccode = strnstr((char *)data, "ccode=XV\r", data_len);
+	if (ccode) {
+		for (i = 0; i < ARRAY_SIZE(ccode_fixup_map); i++) {
+			if (!strcmp(ccode_fixup_map[i][0], path)) {
+				val = ccode_fixup_map[i][1];
+				break;
+			}
+		}
+		if (val) {
+			ccode[6] = val[0];
+			ccode[7] = val[1];
+			ccode[8] = val[2];
+		} else {
+			brcmf_info("Using EFI nvram specifies worldwide ccode, but %s not found in ccode fixup map, please report this\n",
+				   path);
+		}
+	}
+
+	brcmf_info("Using nvram EFI variable\n");
+
+	kfree(nvram_efivar);
+	*data_len_ret = data_len;
+	return data;
+
+fail:
+	kfree(data);
+	kfree(nvram_efivar);
+	return NULL;
+}
+#else
+static u8 *brcmf_fw_nvram_from_efi(size_t *data_len) { return NULL; }
+#endif
+
 static void brcmf_fw_free_request(struct brcmf_fw_request *req)
 {
 	struct brcmf_fw_item *item;
@@ -463,11 +541,12 @@ static int brcmf_fw_request_nvram_done(const struct firmware *fw, void *ctx)
 {
 	struct brcmf_fw *fwctx = ctx;
 	struct brcmf_fw_item *cur;
+	bool free_bcm47xx_nvram = false;
+	bool kfree_nvram = false;
 	u32 nvram_length = 0;
 	void *nvram = NULL;
 	u8 *data = NULL;
 	size_t data_len;
-	bool raw_nvram;
 
 	brcmf_dbg(TRACE, "enter: dev=%s\n", dev_name(fwctx->dev));
 
@@ -476,12 +555,13 @@ static int brcmf_fw_request_nvram_done(const struct firmware *fw, void *ctx)
 	if (fw && fw->data) {
 		data = (u8 *)fw->data;
 		data_len = fw->size;
-		raw_nvram = false;
 	} else {
-		data = bcm47xx_nvram_get_contents(&data_len);
-		if (!data && !(cur->flags & BRCMF_FW_REQF_OPTIONAL))
+		if ((data = bcm47xx_nvram_get_contents(&data_len)))
+			free_bcm47xx_nvram = true;
+		else if ((data = brcmf_fw_nvram_from_efi(cur->path, &data_len)))
+			kfree_nvram = true;
+		else if (!(cur->flags & BRCMF_FW_REQF_OPTIONAL))
 			goto fail;
-		raw_nvram = true;
 	}
 
 	if (data)
@@ -489,8 +569,11 @@ static int brcmf_fw_request_nvram_done(const struct firmware *fw, void *ctx)
 					     fwctx->req->domain_nr,
 					     fwctx->req->bus_nr);
 
-	if (raw_nvram)
+	if (free_bcm47xx_nvram)
 		bcm47xx_nvram_release_contents(data);
+	if (kfree_nvram)
+		kfree(data);
+
 	release_firmware(fw);
 	if (!nvram && !(cur->flags & BRCMF_FW_REQF_OPTIONAL))
 		goto fail;
