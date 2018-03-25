@@ -994,6 +994,9 @@ static void __init __efi_enter_virtual_mode(void)
 		panic("EFI call to SetVirtualAddressMap() failed!");
 	}
 
+	if (efi_enabled(EFI_PRESERVE_BS_REGIONS))
+		efi_check_for_embedded_firmwares();
+
 	efi_free_boot_services();
 
 	/*
