@@ -1945,7 +1945,7 @@ static struct platform_driver hdmi_lpe_audio_driver = {
 };
 
 module_platform_driver(hdmi_lpe_audio_driver);
-MODULE_ALIAS("platform:hdmi_lpe_audio");
+MODULE_ALIAS("platform:hdmi*lpe*audio");
 
 MODULE_AUTHOR("Sailaja Bandarupalli <sailaja.bandarupalli@intel.com>");
 MODULE_AUTHOR("Ramesh Babu K V <ramesh.babu@intel.com>");
