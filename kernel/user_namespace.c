@@ -1394,6 +1394,7 @@ const struct proc_ns_operations userns_operations = {
 	.owner		= userns_owner,
 	.get_parent	= ns_get_owner,
 };
+EXPORT_SYMBOL(userns_operations);
 
 static __init int user_namespaces_init(void)
 {
