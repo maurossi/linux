@@ -73,6 +73,10 @@
 #include <linux/ratelimit.h>
 #include <linux/syscalls.h>
 
+#ifdef CONFIG_ANDROID_BINDER_IPC_32BIT
+#define BINDER_IPC_32BIT 1
+#endif
+
 #include <uapi/linux/android/binder.h>
 
 #include <asm/cacheflush.h>
