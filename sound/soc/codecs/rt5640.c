@@ -2149,7 +2149,7 @@ static bool rt5640_micbias1_ovcd(struct snd_soc_component *component)
 	int val;
 
 	val = snd_soc_component_read(component, RT5640_IRQ_CTRL2);
-	dev_dbg(component->dev, "irq ctrl2 %#04x\n", val);
+	dev_info(component->dev, "irq ctrl2 %#04x\n", val);
 
 	return (val & RT5640_MB1_OC_STATUS);
 }
@@ -2160,7 +2160,7 @@ static bool rt5640_jack_inserted(struct snd_soc_component *component)
 	int val;
 
 	val = snd_soc_component_read(component, RT5640_INT_IRQ_ST);
-	dev_dbg(component->dev, "irq status %#04x\n", val);
+	dev_info(component->dev, "irq status %#04x\n", val);
 
 	if (rt5640->jd_inverted)
 		return !(val & RT5640_JD_STATUS);
@@ -2224,7 +2224,7 @@ static void rt5640_button_press_work(struct work_struct *work)
 	}
 
 	if (rt5640->pressed && !rt5640->press_reported) {
-		dev_dbg(component->dev, "headset button press\n");
+		dev_info(component->dev, "headset button press\n");
 		snd_soc_jack_report(rt5640->jack, SND_JACK_BTN_0,
 				    SND_JACK_BTN_0);
 		rt5640->press_reported = true;
@@ -2232,7 +2232,7 @@ static void rt5640_button_press_work(struct work_struct *work)
 
 	if (rt5640->release_count >= BP_THRESHOLD) {
 		if (rt5640->press_reported) {
-			dev_dbg(component->dev, "headset button release\n");
+			dev_info(component->dev, "headset button release\n");
 			snd_soc_jack_report(rt5640->jack, 0, SND_JACK_BTN_0);
 		}
 		/* Re-enable OVCD IRQ to detect next press */
@@ -2275,13 +2275,13 @@ int rt5640_detect_headset(struct snd_soc_component *component, struct gpio_desc 
 			 * 2nd ring contact and the ground, so a TRS connector
 			 * without a mic contact and thus plain headphones.
 			 */
-			dev_dbg(component->dev, "jack mic-gnd shorted\n");
+			dev_info(component->dev, "jack mic-gnd shorted\n");
 			headset_count = 0;
 			headphone_count++;
 			if (headphone_count == JACK_DETECT_COUNT)
 				return SND_JACK_HEADPHONE;
 		} else {
-			dev_dbg(component->dev, "jack mic-gnd open\n");
+			dev_info(component->dev, "jack mic-gnd open\n");
 			headphone_count = 0;
 			headset_count++;
 			if (headset_count == JACK_DETECT_COUNT)
@@ -2311,7 +2311,7 @@ static void rt5640_jack_work(struct work_struct *work)
 			}
 			snd_soc_jack_report(rt5640->jack, 0,
 					    SND_JACK_HEADSET | SND_JACK_BTN_0);
-			dev_dbg(component->dev, "jack unplugged\n");
+			dev_info(component->dev, "jack unplugged\n");
 		}
 	} else if (!(rt5640->jack->status & SND_JACK_HEADPHONE)) {
 		/* Jack inserted */
@@ -2325,10 +2325,10 @@ static void rt5640_jack_work(struct work_struct *work)
 			/* No more need for overcurrent detect. */
 			rt5640_disable_micbias1_for_ovcd(component);
 		}
-		dev_dbg(component->dev, "detect status %#02x\n", status);
+		dev_info(component->dev, "detect status %#02x\n", status);
 		snd_soc_jack_report(rt5640->jack, status, SND_JACK_HEADSET);
 	} else if (rt5640->ovcd_irq_enabled && rt5640_micbias1_ovcd(component)) {
-		dev_dbg(component->dev, "OVCD IRQ\n");
+		dev_info(component->dev, "OVCD IRQ\n");
 
 		/*
 		 * The ovcd IRQ keeps firing while the button is pressed, so
