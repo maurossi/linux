@@ -1693,6 +1693,9 @@ void vlv_dsi_init(struct drm_i915_private *dev_priv)
 	intel_connector->get_hw_state = intel_connector_get_hw_state;
 
 	intel_encoder->port = port;
+	intel_encoder->type = INTEL_OUTPUT_DSI;
+	intel_encoder->power_domain = POWER_DOMAIN_PORT_DSI;
+	intel_encoder->cloneable = 0;
 
 	/*
 	 * On BYT/CHV, pipe A maps to MIPI DSI port A, pipe B maps to MIPI DSI
@@ -1745,9 +1748,6 @@ void vlv_dsi_init(struct drm_i915_private *dev_priv)
 		}
 	}
 
-	intel_encoder->type = INTEL_OUTPUT_DSI;
-	intel_encoder->power_domain = POWER_DOMAIN_PORT_DSI;
-	intel_encoder->cloneable = 0;
 	drm_connector_init(dev, connector, &intel_dsi_connector_funcs,
 			   DRM_MODE_CONNECTOR_DSI);
 
