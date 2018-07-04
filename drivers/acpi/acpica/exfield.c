@@ -366,6 +366,16 @@ acpi_ex_write_data_to_field(union acpi_operand_object *source_desc,
 		} else if (obj_desc->field.region_obj->region.space_id ==
 			   ACPI_ADR_SPACE_GSBUS) {
 			accessor_type = obj_desc->field.attribute;
+
+			/*
+			 * AttribRawProcessBytes uses a variable length,
+			 * stored as in/out param inside the buffer,
+			 * which may use up to the entire buffer size.
+			 */
+			if (accessor_type == AML_FIELD_ATTRIB_RAW_PROCESS)
+				obj_desc->field.access_length =
+					source_desc->buffer.length - 2;
+
 			length =
 			    acpi_ex_get_serial_access_length(accessor_type,
 							     obj_desc->field.
