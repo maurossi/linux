@@ -250,8 +250,10 @@ static const struct ts_dmi_data jumper_ezpad_6_pro_data = {
 };
 
 static const struct property_entry jumper_ezpad_mini3_props[] = {
-	PROPERTY_ENTRY_U32("touchscreen-size-x", 1700),
-	PROPERTY_ENTRY_U32("touchscreen-size-y", 1150),
+	PROPERTY_ENTRY_U32("touchscreen-min-x", 23),
+	PROPERTY_ENTRY_U32("touchscreen-min-y", 16),
+	PROPERTY_ENTRY_U32("touchscreen-size-x", 1699),
+	PROPERTY_ENTRY_U32("touchscreen-size-y", 1138),
 	PROPERTY_ENTRY_BOOL("touchscreen-swapped-x-y"),
 	PROPERTY_ENTRY_STRING("firmware-name", "gsl3676-jumper-ezpad-mini3.fw"),
 	PROPERTY_ENTRY_U32("silead,max-fingers", 10),
@@ -450,6 +452,8 @@ static const struct ts_dmi_data trekstor_surftab_twin_10_1_data = {
 };
 
 static const struct property_entry trekstor_surftab_wintron70_props[] = {
+	PROPERTY_ENTRY_U32("touchscreen-min-x", 12),
+	PROPERTY_ENTRY_U32("touchscreen-min-y", 8),
 	PROPERTY_ENTRY_U32("touchscreen-size-x", 884),
 	PROPERTY_ENTRY_U32("touchscreen-size-y", 632),
 	PROPERTY_ENTRY_STRING("firmware-name",
