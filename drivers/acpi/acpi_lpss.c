@@ -914,6 +914,8 @@ static void lpss_iosf_enter_d3_state(void)
 	if (pmc_status)
 		goto exit;
 
+	pr_err("lpss_iosf_enter_d3_state: bingo\n");
+
 	iosf_mbi_modify(LPSS_IOSF_UNIT_LPIO1, MBI_CFG_WRITE,
 			LPSS_IOSF_PMCSR, value2, mask2);
 
