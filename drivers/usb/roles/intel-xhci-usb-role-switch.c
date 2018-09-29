@@ -110,14 +110,18 @@ static enum usb_role intel_xhci_usb_get_role(struct device *dev)
 
 	pm_runtime_get_sync(dev);
 	val = readl(data->base + DUAL_ROLE_CFG0);
-	pm_runtime_put(dev);
 
-	if (!(val & SW_IDPIN))
-		role = USB_ROLE_HOST;
-	else if (val & SW_VBUS_VALID)
-		role = USB_ROLE_DEVICE;
-	else
+	if ((val & SW_IDPIN) && !(val & SW_VBUS_VALID))
 		role = USB_ROLE_NONE;
+	else {
+		val = readl(data->base + DUAL_ROLE_CFG1);
+		if (val & HOST_MODE)
+			role = USB_ROLE_HOST;
+		else
+			role = USB_ROLE_DEVICE;
+	}
+
+	pm_runtime_put(dev);
 
 	return role;
 }
