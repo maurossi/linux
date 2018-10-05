@@ -580,6 +580,11 @@ static uint32_t dce110_get_pix_clk_dividers(
 	}
 
 	switch (cs->ctx->dce_version) {
+#if defined(CONFIG_DRM_AMD_DC_SI)
+	case DCE_VERSION_6_0:
+	case DCE_VERSION_6_1:
+	case DCE_VERSION_6_4:
+#endif
 	case DCE_VERSION_8_0:
 	case DCE_VERSION_8_1:
 	case DCE_VERSION_8_3:
@@ -941,6 +946,11 @@ static bool dce110_program_pix_clk(
 	bp_pc_params.signal_type = pix_clk_params->signal_type;
 
 	switch (clock_source->ctx->dce_version) {
+#if defined(CONFIG_DRM_AMD_DC_SI)
+	case DCE_VERSION_6_0:
+	case DCE_VERSION_6_1:
+	case DCE_VERSION_6_4:
+#endif
 	case DCE_VERSION_8_0:
 	case DCE_VERSION_8_1:
 	case DCE_VERSION_8_3:
@@ -1296,6 +1306,11 @@ bool dce110_clk_src_construct(
 			fw_info.external_clock_source_frequency_for_dp;
 
 	switch (clk_src->base.ctx->dce_version) {
+#if defined(CONFIG_DRM_AMD_DC_SI)
+	case DCE_VERSION_6_0:
+	case DCE_VERSION_6_1:
+	case DCE_VERSION_6_4:
+#endif
 	case DCE_VERSION_8_0:
 	case DCE_VERSION_8_1:
 	case DCE_VERSION_8_3:
