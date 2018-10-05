@@ -31,6 +31,18 @@ AMD_DAL_I2CAUX = $(addprefix $(AMDDALPATH)/dc/i2caux/,$(I2CAUX))
 AMD_DISPLAY_FILES += $(AMD_DAL_I2CAUX)
 
 ###############################################################################
+# DCE 6x family
+###############################################################################
+ifdef CONFIG_DRM_AMD_DC_SI
+I2CAUX_DCE60 = i2caux_dce60.o i2c_hw_engine_dce60.o \
+	i2c_sw_engine_dce60.o
+
+AMD_DAL_I2CAUX_DCE60 = $(addprefix $(AMDDALPATH)/dc/i2caux/dce60/,$(I2CAUX_DCE60))
+
+AMD_DISPLAY_FILES += $(AMD_DAL_I2CAUX_DCE60)
+endif
+
+###############################################################################
 # DCE 8x family
 ###############################################################################
 I2CAUX_DCE80 = i2caux_dce80.o i2c_hw_engine_dce80.o \
