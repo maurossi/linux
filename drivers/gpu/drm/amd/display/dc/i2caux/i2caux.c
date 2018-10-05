@@ -49,6 +49,10 @@
  * This unit
  */
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+#include "dce60/i2caux_dce60.h"
+#endif
+
 #include "dce80/i2caux_dce80.h"
 
 #include "dce100/i2caux_dce100.h"
@@ -78,6 +82,12 @@ struct i2caux *dal_i2caux_create(
 	}
 
 	switch (ctx->dce_version) {
+#if defined(CONFIG_DRM_AMD_DC_SI)
+	case DCE_VERSION_6_0:
+	case DCE_VERSION_6_1:
+	case DCE_VERSION_6_4:
+		return dal_i2caux_dce60_create(ctx);
+#endif
 	case DCE_VERSION_8_0:
 	case DCE_VERSION_8_1:
 	case DCE_VERSION_8_3:
