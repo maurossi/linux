@@ -21,6 +21,14 @@ config DRM_AMD_DC_DCN1_01
 	help
 	  RV2 family for display engine
 
+config DRM_AMD_DC_SI
+	bool "AMD DC support for Southern Islands ASICs"
+	default n
+	help
+	  Choose this option to enable new AMD DC support for SI asics
+	  by default. This includes Tahiti, Pitcairn, Cape Verde, Oland.
+	  Hainan is not supported since it has no physical DCE6 module.
+
 config DEBUG_KERNEL_DC
 	bool "Enable kgdb break in DC"
 	depends on DRM_AMD_DC
