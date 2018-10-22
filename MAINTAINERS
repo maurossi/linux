@@ -15619,12 +15619,6 @@ S:	Maintained
 F:	drivers/virtio/virtio_input.c
 F:	include/uapi/linux/virtio_input.h
 
-VIRTUAL BOX DRM DRIVER
-M:	Hans de Goede <hdegoede@redhat.com>
-L:	dri-devel@lists.freedesktop.org
-S:	Maintained
-F:	drivers/gpu/drm/vboxvideo/
-
 VIRTUAL BOX GUEST DEVICE DRIVER
 M:	Hans de Goede <hdegoede@redhat.com>
 M:	Arnd Bergmann <arnd@arndb.de>
