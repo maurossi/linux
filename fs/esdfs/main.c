@@ -32,6 +32,7 @@ enum {
 	Opt_noconfine,
 	Opt_gid_derivation,
 	Opt_default_normal,
+	Opt_unshared_obb,
 	Opt_dl_loc,
 	Opt_dl_uid,
 	Opt_dl_gid,
@@ -61,6 +62,7 @@ static match_table_t esdfs_tokens = {
 	{Opt_noconfine, "noconfine"},
 	{Opt_gid_derivation, "derive_gid"},
 	{Opt_default_normal, "default_normal"},
+	{Opt_unshared_obb, "unshared_obb"},
 	{Opt_dl_loc, "dl_loc=%s"},
 	{Opt_dl_uid, "dl_uid=%u"},
 	{Opt_dl_gid, "dl_gid=%u"},
@@ -288,6 +290,9 @@ static int parse_options(struct super_block *sb, char *options)
 			break;
 		case Opt_default_normal:
 			set_opt(sbi, DEFAULT_NORMAL);
+			break;
+		case Opt_unshared_obb:
+			set_opt(sbi, UNSHARED_OBB);
 			break;
 		case Opt_dl_loc:
 			set_opt(sbi, SPECIAL_DOWNLOAD);

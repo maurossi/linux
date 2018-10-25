@@ -61,6 +61,7 @@
 #define ESDFS_MOUNT_GID_DERIVATION	0x00000040
 #define ESDFS_MOUNT_DEFAULT_NORMAL	0x00000080
 #define ESDFS_MOUNT_SPECIAL_DOWNLOAD	0x00000100
+#define ESDFS_MOUNT_UNSHARED_OBB	0x00000200
 
 #define clear_opt(sbi, option)	(sbi->options &= ~ESDFS_MOUNT_##option)
 #define set_opt(sbi, option)	(sbi->options |= ESDFS_MOUNT_##option)
