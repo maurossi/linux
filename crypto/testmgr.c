@@ -2404,6 +2404,18 @@ static int alg_test_null(const struct alg_test_desc *desc,
 /* Please keep this list sorted by algorithm name. */
 static const struct alg_test_desc alg_test_descs[] = {
 	{
+		.alg = "adiantum(xchacha12,aes)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = __VECS(adiantum_xchacha12_aes_tv_template)
+		},
+	}, {
+		.alg = "adiantum(xchacha20,aes)",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = __VECS(adiantum_xchacha20_aes_tv_template)
+		},
+	}, {
 		.alg = "aegis128",
 		.test = alg_test_aead,
 		.suite = {
@@ -3038,18 +3050,6 @@ static const struct alg_test_desc alg_test_descs[] = {
 			.cipher = __VECS(sm4_tv_template)
 		}
 	}, {
-		.alg = "ecb(speck128)",
-		.test = alg_test_skcipher,
-		.suite = {
-			.cipher = __VECS(speck128_tv_template)
-		}
-	}, {
-		.alg = "ecb(speck64)",
-		.test = alg_test_skcipher,
-		.suite = {
-			.cipher = __VECS(speck64_tv_template)
-		}
-	}, {
 		.alg = "ecb(tea)",
 		.test = alg_test_skcipher,
 		.suite = {
@@ -3290,6 +3290,12 @@ static const struct alg_test_desc alg_test_descs[] = {
 				.enc = __VECS(morus640_enc_tv_template),
 				.dec = __VECS(morus640_dec_tv_template),
 			}
+		}
+	}, {
+		.alg = "nhpoly1305",
+		.test = alg_test_hash,
+		.suite = {
+			.hash = __VECS(nhpoly1305_tv_template)
 		}
 	}, {
 		.alg = "ofb(aes)",
@@ -3545,6 +3551,18 @@ static const struct alg_test_desc alg_test_descs[] = {
 			.hash = __VECS(aes_xcbc128_tv_template)
 		}
 	}, {
+		.alg = "xchacha12",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = __VECS(xchacha12_tv_template)
+		},
+	}, {
+		.alg = "xchacha20",
+		.test = alg_test_skcipher,
+		.suite = {
+			.cipher = __VECS(xchacha20_tv_template)
+		},
+	}, {
 		.alg = "xts(aes)",
 		.test = alg_test_skcipher,
 		.fips_allowed = 1,
@@ -3575,18 +3593,6 @@ static const struct alg_test_desc alg_test_descs[] = {
 		.test = alg_test_skcipher,
 		.suite = {
 			.cipher = __VECS(serpent_xts_tv_template)
-		}
-	}, {
-		.alg = "xts(speck128)",
-		.test = alg_test_skcipher,
-		.suite = {
-			.cipher = __VECS(speck128_xts_tv_template)
-		}
-	}, {
-		.alg = "xts(speck64)",
-		.test = alg_test_skcipher,
-		.suite = {
-			.cipher = __VECS(speck64_xts_tv_template)
 		}
 	}, {
 		.alg = "xts(twofish)",

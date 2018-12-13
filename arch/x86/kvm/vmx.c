@@ -170,6 +170,7 @@ module_param_named(preemption_timer, enable_preemption_timer, bool, S_IRUGO);
  * refer SDM volume 3b section 21.6.13 & 22.1.3.
  */
 static unsigned int ple_gap = KVM_DEFAULT_PLE_GAP;
+module_param(ple_gap, uint, 0444);
 
 static unsigned int ple_window = KVM_VMX_DEFAULT_PLE_WINDOW;
 module_param(ple_window, uint, 0444);
@@ -3294,10 +3295,13 @@ static int nested_vmx_check_exception(struct kvm_vcpu *vcpu, unsigned long *exit
 		}
 	} else {
 		if (vmcs12->exception_bitmap & (1u << nr)) {
-			if (nr == DB_VECTOR)
+			if (nr == DB_VECTOR) {
 				*exit_qual = vcpu->arch.dr6;
-			else
+				*exit_qual &= ~(DR6_FIXED_1 | DR6_BT);
+				*exit_qual ^= DR6_RTM;
+			} else {
 				*exit_qual = 0;
+			}
 			return 1;
 		}
 	}
@@ -3430,11 +3434,9 @@ static u64 vmx_read_l1_tsc_offset(struct kvm_vcpu *vcpu)
 	return vcpu->arch.tsc_offset;
 }
 
-/*
- * writes 'offset' into guest's timestamp counter offset register
- */
-static void vmx_write_tsc_offset(struct kvm_vcpu *vcpu, u64 offset)
+static u64 vmx_write_l1_tsc_offset(struct kvm_vcpu *vcpu, u64 offset)
 {
+	u64 active_offset = offset;
 	if (is_guest_mode(vcpu)) {
 		/*
 		 * We're here if L1 chose not to trap WRMSR to TSC. According
@@ -3442,17 +3444,16 @@ static void vmx_write_tsc_offset(struct kvm_vcpu *vcpu, u64 offset)
 		 * set for L2 remains unchanged, and still needs to be added
 		 * to the newly set TSC to get L2's TSC.
 		 */
-		struct vmcs12 *vmcs12;
-		/* recalculate vmcs02.TSC_OFFSET: */
-		vmcs12 = get_vmcs12(vcpu);
-		vmcs_write64(TSC_OFFSET, offset +
-			(nested_cpu_has(vmcs12, CPU_BASED_USE_TSC_OFFSETING) ?
-			 vmcs12->tsc_offset : 0));
+		struct vmcs12 *vmcs12 = get_vmcs12(vcpu);
+		if (nested_cpu_has(vmcs12, CPU_BASED_USE_TSC_OFFSETING))
+			active_offset += vmcs12->tsc_offset;
 	} else {
 		trace_kvm_write_tsc_offset(vcpu->vcpu_id,
 					   vmcs_read64(TSC_OFFSET), offset);
-		vmcs_write64(TSC_OFFSET, offset);
 	}
+
+	vmcs_write64(TSC_OFFSET, active_offset);
+	return active_offset;
 }
 
 /*
@@ -14010,13 +14011,6 @@ static int vmx_set_nested_state(struct kvm_vcpu *vcpu,
 	if (!page_address_valid(vcpu, kvm_state->vmx.vmxon_pa))
 		return -EINVAL;
 
-	if (kvm_state->size < sizeof(kvm_state) + sizeof(*vmcs12))
-		return -EINVAL;
-
-	if (kvm_state->vmx.vmcs_pa == kvm_state->vmx.vmxon_pa ||
-	    !page_address_valid(vcpu, kvm_state->vmx.vmcs_pa))
-		return -EINVAL;
-
 	if ((kvm_state->vmx.smm.flags & KVM_STATE_NESTED_SMM_GUEST_MODE) &&
 	    (kvm_state->flags & KVM_STATE_NESTED_GUEST_MODE))
 		return -EINVAL;
@@ -14045,6 +14039,14 @@ static int vmx_set_nested_state(struct kvm_vcpu *vcpu,
 	ret = enter_vmx_operation(vcpu);
 	if (ret)
 		return ret;
+
+	/* Empty 'VMXON' state is permitted */
+	if (kvm_state->size < sizeof(kvm_state) + sizeof(*vmcs12))
+		return 0;
+
+	if (kvm_state->vmx.vmcs_pa == kvm_state->vmx.vmxon_pa ||
+	    !page_address_valid(vcpu, kvm_state->vmx.vmcs_pa))
+		return -EINVAL;
 
 	set_current_vmptr(vmx, kvm_state->vmx.vmcs_pa);
 
@@ -14199,7 +14201,7 @@ static struct kvm_x86_ops vmx_x86_ops __ro_after_init = {
 	.has_wbinvd_exit = cpu_has_vmx_wbinvd_exit,
 
 	.read_l1_tsc_offset = vmx_read_l1_tsc_offset,
-	.write_tsc_offset = vmx_write_tsc_offset,
+	.write_l1_tsc_offset = vmx_write_l1_tsc_offset,
 
 	.set_tdp_cr3 = vmx_set_cr3,
 

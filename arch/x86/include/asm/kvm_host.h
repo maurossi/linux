@@ -177,6 +177,7 @@ enum {
 
 #define DR6_BD		(1 << 13)
 #define DR6_BS		(1 << 14)
+#define DR6_BT		(1 << 15)
 #define DR6_RTM		(1 << 16)
 #define DR6_FIXED_1	0xfffe0ff0
 #define DR6_INIT	0xffff0ff0
@@ -1045,7 +1046,8 @@ struct kvm_x86_ops {
 	bool (*has_wbinvd_exit)(void);
 
 	u64 (*read_l1_tsc_offset)(struct kvm_vcpu *vcpu);
-	void (*write_tsc_offset)(struct kvm_vcpu *vcpu, u64 offset);
+	/* Returns actual tsc_offset set in active VMCS */
+	u64 (*write_l1_tsc_offset)(struct kvm_vcpu *vcpu, u64 offset);
 
 	void (*get_exit_info)(struct kvm_vcpu *vcpu, u64 *info1, u64 *info2);
 
