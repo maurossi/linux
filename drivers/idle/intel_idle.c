@@ -63,6 +63,7 @@
 #include <linux/moduleparam.h>
 #include <asm/cpu_device_id.h>
 #include <asm/intel-family.h>
+#include <asm/intel_idle.h>
 #include <asm/mwait.h>
 #include <asm/msr.h>
 
@@ -80,6 +81,22 @@ static unsigned int mwait_substates;
 #define LAPIC_TIMER_ALWAYS_RELIABLE 0xFFFFFFFF
 /* Reliable LAPIC Timer States, bit 1 for C1 etc.  */
 static unsigned int lapic_timer_reliable_states = (1 << 1);	 /* Default to only C1 */
+
+#ifdef CONFIG_PM_DEBUG
+static RAW_NOTIFIER_HEAD(intel_idle_freeze_notifier);
+
+void intel_idle_freeze_notifier_register(struct notifier_block *nb)
+{
+	raw_notifier_chain_register(&intel_idle_freeze_notifier, nb);
+}
+EXPORT_SYMBOL(intel_idle_freeze_notifier_register);
+
+void intel_idle_freeze_notifier_unregister(struct notifier_block *nb)
+{
+	raw_notifier_chain_unregister(&intel_idle_freeze_notifier, nb);
+}
+EXPORT_SYMBOL(intel_idle_freeze_notifier_unregister);
+#endif
 
 struct idle_cpu {
 	struct cpuidle_state *state_table;
@@ -221,6 +238,7 @@ static struct cpuidle_state byt_cstates[] = {
 		.flags = MWAIT2flg(0x58) | CPUIDLE_FLAG_TLB_FLUSHED,
 		.exit_latency = 300,
 		.target_residency = 275,
+		.disabled = true,
 		.enter = &intel_idle,
 		.enter_s2idle = intel_idle_s2idle, },
 	{
@@ -229,6 +247,7 @@ static struct cpuidle_state byt_cstates[] = {
 		.flags = MWAIT2flg(0x52) | CPUIDLE_FLAG_TLB_FLUSHED,
 		.exit_latency = 500,
 		.target_residency = 560,
+		.disabled = true,
 		.enter = &intel_idle,
 		.enter_s2idle = intel_idle_s2idle, },
 	{
@@ -953,6 +972,9 @@ static void intel_idle_s2idle(struct cpuidle_device *dev,
 	unsigned long ecx = 1; /* break on interrupt flag */
 	unsigned long eax = flg2MWAIT(drv->states[index].flags);
 
+#ifdef CONFIG_PM_DEBUG
+	raw_notifier_call_chain(&intel_idle_freeze_notifier, dev->cpu, NULL);
+#endif
 	mwait_idle_with_hints(eax, ecx);
 }
 

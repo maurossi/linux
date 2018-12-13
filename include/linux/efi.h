@@ -1152,6 +1152,7 @@ extern int __init efi_setup_pcdp_console(char *);
 #define EFI_DBG			8	/* Print additional debug info at runtime */
 #define EFI_NX_PE_DATA		9	/* Can runtime data regions be mapped non-executable? */
 #define EFI_MEM_ATTR		10	/* Did firmware publish an EFI_MEMORY_ATTRIBUTES table? */
+#define EFI_PRESERVE_BS_REGIONS	11	/* Are EFI boot-services memory segments available? */
 
 #ifdef CONFIG_EFI
 /*
@@ -1580,6 +1581,12 @@ void efi_enable_reset_attack_mitigation(efi_system_table_t *sys_table_arg);
 #else
 static inline void
 efi_enable_reset_attack_mitigation(efi_system_table_t *sys_table_arg) { }
+#endif
+
+#ifdef CONFIG_EFI_EMBEDDED_FIRMWARE
+void efi_check_for_embedded_firmwares(void);
+#else
+static inline void efi_check_for_embedded_firmwares(void) { }
 #endif
 
 void efi_retrieve_tpm2_eventlog(efi_system_table_t *sys_table);
