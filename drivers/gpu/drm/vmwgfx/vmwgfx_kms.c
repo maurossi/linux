@@ -940,7 +940,7 @@ static int vmw_kms_new_framebuffer_surface(struct vmw_private *dev_priv,
 	 * is set.
 	 */
 	if (!dev_priv->has_dx && format != surface->format) {
-		DRM_ERROR("Invalid surface format for requested mode.\n");
+		DRM_ERROR("Invalid surface format %d for requested mode format %d\n", surface->format, format);
 		return -EINVAL;
 	}
 
