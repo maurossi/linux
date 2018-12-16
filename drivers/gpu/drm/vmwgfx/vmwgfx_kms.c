@@ -1340,7 +1340,7 @@ static int vmw_kms_new_framebuffer_surface(struct vmw_private *dev_priv,
 	 * is set.
 	 */
 	if (!has_sm4_context(dev_priv) && format != surface->metadata.format) {
-		DRM_ERROR("Invalid surface format for requested mode.\n");
+		DRM_ERROR("Invalid surface format %d for requested mode format %d\n", surface->metadata.format, format);
 		return -EINVAL;
 	}
 
