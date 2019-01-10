@@ -30,6 +30,9 @@
 
 #include "dce110/irq_service_dce110.h"
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+#include "dce60/irq_service_dce60.h"
+#endif
 
 #include "dce80/irq_service_dce80.h"
 
