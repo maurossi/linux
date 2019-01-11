@@ -192,7 +192,7 @@ static psmouse_ret_t vmmouse_report_events(struct psmouse *psmouse)
 		}
 
 		/* Xorg seems to ignore wheel events on absolute devices */
-		input_report_rel(rel_dev, REL_WHEEL, -(s8)((u8) z));
+		input_report_rel(abs_dev, REL_WHEEL, -(s8)((u8) z));
 
 		vmmouse_report_button(psmouse, abs_dev, rel_dev,
 				      pref_dev, BTN_LEFT,
@@ -459,15 +459,13 @@ int vmmouse_init(struct psmouse *psmouse)
 	input_set_capability(abs_dev, EV_KEY, BTN_MIDDLE);
 	input_set_capability(abs_dev, EV_ABS, ABS_X);
 	input_set_capability(abs_dev, EV_ABS, ABS_Y);
+	input_set_capability(abs_dev, EV_REL, REL_WHEEL);
 	input_set_abs_params(abs_dev, ABS_X, 0, VMMOUSE_MAX_X, 0, 0);
 	input_set_abs_params(abs_dev, ABS_Y, 0, VMMOUSE_MAX_Y, 0, 0);
 
 	error = input_register_device(priv->abs_dev);
 	if (error)
 		goto init_fail;
-
-	/* Add wheel capability to the relative device */
-	input_set_capability(rel_dev, EV_REL, REL_WHEEL);
 
 	psmouse->protocol_handler = vmmouse_process_byte;
 	psmouse->disconnect = vmmouse_disconnect;
