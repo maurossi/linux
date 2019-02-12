@@ -1321,4 +1321,14 @@ config TOUCHSCREEN_DWAV_USB_MT
 	  To compile this driver as a module, choose M here: the
 	  module will be called dwav-usb-mt.
 
+config TOUCHSCREEN_PQLABS_USB
+	tristate "PQ Labs IR MultiTouch Screen Driver"
+	depends on USB
+	help
+	  Say Y here if you have a PQ LABS IR MultiTouch Screen
+	  connected to your system.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called usb_pqlabs.
+
 endif
