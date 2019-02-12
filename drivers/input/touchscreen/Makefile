@@ -114,3 +114,4 @@ obj-$(CONFIG_TOUCHSCREEN_IQS5XX)	+= iqs5xx.o
 obj-$(CONFIG_TOUCHSCREEN_ZINITIX)	+= zinitix.o
 obj-$(CONFIG_TOUCHSCREEN_NWFERMI)	+= nw-fermi.o
 obj-$(CONFIG_TOUCHSCREEN_DWAV_USB_MT)	+= dwav-usb-mt.o
+obj-$(CONFIG_TOUCHSCREEN_PQLABS_USB)	+= usb_pqlabs.o
