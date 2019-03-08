@@ -1228,4 +1228,6 @@
 #define USB_VENDOR_ID_UGTIZER			0x2179
 #define USB_DEVICE_ID_UGTIZER_TABLET_GP0610	0x0053
 
+#define USB_VENDOR_ID_ETAB		0x1018	/* E-tab touchpad */
+
 #endif
