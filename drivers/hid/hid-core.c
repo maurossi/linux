@@ -917,6 +917,9 @@ static int hid_scan_report(struct hid_device *hid)
 				 */
 				hid->group = HID_GROUP_RMI;
 		break;
+	case USB_VENDOR_ID_ETAB:
+		hid->group = HID_GROUP_GENERIC;
+		break;
 	}
 
 	kfree(parser->collection_stack);

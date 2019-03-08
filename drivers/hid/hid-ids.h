@@ -1323,4 +1323,6 @@
 #define USB_VENDOR_ID_SIGNOTEC			0x2133
 #define USB_DEVICE_ID_SIGNOTEC_VIEWSONIC_PD1011	0x0018
 
+#define USB_VENDOR_ID_ETAB		0x1018	/* E-tab touchpad */
+
 #endif
