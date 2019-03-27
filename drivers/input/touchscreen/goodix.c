@@ -223,6 +223,19 @@ static const struct dmi_system_id rotated_screen[] = {
 	{}
 };
 
+static const struct dmi_system_id y_inverted[] = {
+#if defined(CONFIG_DMI) && defined(CONFIG_X86)
+	{
+		.ident = "Microtech e-tab Pro",
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "Microtech"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "e-tab Pro")
+		}
+	},
+#endif
+	{}
+};
+
 static const struct dmi_system_id nine_bytes_report[] = {
 #if defined(CONFIG_DMI) && defined(CONFIG_X86)
 	{
@@ -1126,6 +1139,9 @@ static int goodix_configure_dev(struct goodix_ts_data *ts)
 		ts->prop.invert_y = true;
 		dev_dbg(&ts->client->dev,
 			"Applying '180 degrees rotated screen' quirk\n");
+	} else if (dmi_check_system(y_inverted)) {
+		ts->prop.invert_y = true;
+		dev_err(&ts->client->dev, "Applying 'invert y axis' quirk\n");
 	}
 
 	if (dmi_check_system(nine_bytes_report)) {
