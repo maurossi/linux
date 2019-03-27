@@ -80,6 +80,12 @@ static const struct drm_dmi_panel_orientation_data lcd800x1280_rightside_up = {
 	.orientation = DRM_MODE_PANEL_ORIENTATION_RIGHT_UP,
 };
 
+static const struct drm_dmi_panel_orientation_data etabpro_2018 = {
+	.width = 1200,
+	.height = 1920,
+	.orientation = DRM_MODE_PANEL_ORIENTATION_BOTTOM_UP,
+};
+
 static const struct dmi_system_id orientation_data[] = {
 	{	/* Acer One 10 (S1003) */
 		.matches = {
@@ -154,6 +160,12 @@ static const struct dmi_system_id orientation_data[] = {
 		  DMI_EXACT_MATCH(DMI_PRODUCT_NAME, "LTH17"),
 		},
 		.driver_data = (void *)&lcd800x1280_rightside_up,
+	}, {	/* Microtech e-tab Pro */
+		.matches = {
+			DMI_MATCH(DMI_SYS_VENDOR, "Microtech"),
+			DMI_MATCH(DMI_PRODUCT_NAME, "e-tab Pro")
+		},
+		.driver_data = (void *)&etabpro_2018,
 	},
 	{}
 };
