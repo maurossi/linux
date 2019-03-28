@@ -2171,20 +2171,21 @@ static int shmem_mmap(struct file *file, struct vm_area_struct *vma)
 {
 	struct shmem_inode_info *info = SHMEM_I(file_inode(file));
 
-	/*
-	 * New PROT_READ and MAP_SHARED mmaps are not allowed when "future
-	 * write" seal active.
-	 */
-	if ((vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE) &&
-	    (info->seals & F_SEAL_FUTURE_WRITE))
-		return -EPERM;
+	if (info->seals & F_SEAL_FUTURE_WRITE) {
+		/*
+		 * New PROT_WRITE and MAP_SHARED mmaps are not allowed when
+		 * "future write" seal active.
+		 */
+		if ((vma->vm_flags & VM_SHARED) && (vma->vm_flags & VM_WRITE))
+			return -EPERM;
 
-	/*
-	 * Since the F_SEAL_FUTURE_WRITE seals allow for a MAP_SHARED read-only
-	 * mapping, take care to not allow mprotect to revert protections.
-	 */
-	if (info->seals & F_SEAL_FUTURE_WRITE)
+		/*
+		 * Since the F_SEAL_FUTURE_WRITE seals allow for a MAP_SHARED
+		 * read-only mapping, take care to not allow mprotect to revert
+		 * protections.
+		 */
 		vma->vm_flags &= ~(VM_MAYWRITE);
+	}
 
 	file_accessed(file);
 	vma->vm_ops = &shmem_vm_ops;
@@ -2913,16 +2914,20 @@ static int shmem_create(struct inode *dir, struct dentry *dentry, umode_t mode,
 static int shmem_link(struct dentry *old_dentry, struct inode *dir, struct dentry *dentry)
 {
 	struct inode *inode = d_inode(old_dentry);
-	int ret;
+	int ret = 0;
 
 	/*
 	 * No ordinary (disk based) filesystem counts links as inodes;
 	 * but each new link needs a new dentry, pinning lowmem, and
 	 * tmpfs dentries cannot be pruned until they are unlinked.
+	 * But if an O_TMPFILE file is linked into the tmpfs, the
+	 * first link must skip that, to get the accounting right.
 	 */
-	ret = shmem_reserve_inode(inode->i_sb);
-	if (ret)
-		goto out;
+	if (inode->i_nlink) {
+		ret = shmem_reserve_inode(inode->i_sb);
+		if (ret)
+			goto out;
+	}
 
 	dir->i_size += BOGO_DIRENT_SIZE;
 	inode->i_ctime = dir->i_ctime = dir->i_mtime = current_time(inode);

@@ -1425,6 +1425,9 @@ void drm_atomic_helper_wait_for_flip_done(struct drm_device *dev,
 			DRM_ERROR("[CRTC:%d:%s] flip_done timed out\n",
 				  crtc->base.id, crtc->name);
 	}
+
+	if (old_state->fake_commit)
+		complete_all(&old_state->fake_commit->flip_done);
 }
 EXPORT_SYMBOL(drm_atomic_helper_wait_for_flip_done);
 
@@ -1559,6 +1562,24 @@ int drm_atomic_helper_async_check(struct drm_device *dev,
 
 	if (!new_plane_state->crtc ||
 	    old_plane_state->crtc != new_plane_state->crtc)
+		return -EINVAL;
+
+	/*
+	 * FIXME: Since prepare_fb and cleanup_fb are always called on
+	 * the new_plane_state for async updates we need to block framebuffer
+	 * changes. This prevents use of a fb that's been cleaned up and
+	 * double cleanups from occuring.
+	 */
+	if (old_plane_state->fb != new_plane_state->fb)
+		return -EINVAL;
+
+	/*
+	 * FIXME: Since prepare_fb and cleanup_fb are always called on
+	 * the new_plane_state for async updates we need to block framebuffer
+	 * changes. This prevents use of a fb that's been cleaned up and
+	 * double cleanups from occuring.
+	 */
+	if (old_plane_state->fb != new_plane_state->fb)
 		return -EINVAL;
 
 	funcs = plane->helper_private;
@@ -3189,7 +3210,7 @@ EXPORT_SYMBOL(drm_atomic_helper_suspend);
 int drm_atomic_helper_commit_duplicated_state(struct drm_atomic_state *state,
 					      struct drm_modeset_acquire_ctx *ctx)
 {
-	int i;
+	int i, ret;
 	struct drm_plane *plane;
 	struct drm_plane_state *new_plane_state;
 	struct drm_connector *connector;
@@ -3208,7 +3229,11 @@ int drm_atomic_helper_commit_duplicated_state(struct drm_atomic_state *state,
 	for_each_new_connector_in_state(state, connector, new_conn_state, i)
 		state->connectors[i].old_state = connector->state;
 
-	return drm_atomic_commit(state);
+	ret = drm_atomic_commit(state);
+
+	state->acquire_ctx = NULL;
+
+	return ret;
 }
 EXPORT_SYMBOL(drm_atomic_helper_commit_duplicated_state);
 
