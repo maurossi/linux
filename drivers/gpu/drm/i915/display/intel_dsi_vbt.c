@@ -387,7 +387,7 @@ static const u8 *mipi_exec_gpio(struct intel_dsi *intel_dsi, const u8 *data)
 		vlv_exec_gpio(dev_priv, gpio_source, gpio_number, value);
 	else if (IS_CHERRYVIEW(dev_priv))
 		chv_exec_gpio(dev_priv, gpio_source, gpio_number, value);
-	else
+	else if (!IS_GEMINILAKE(dev_priv))
 		bxt_exec_gpio(dev_priv, gpio_source, gpio_index, value);
 
 	return data;
