@@ -338,7 +338,7 @@ static const struct dmi_system_id i2c_hid_dmi_desc_override_table[] = {
 		},
 		.driver_data = (void *)&sipodev_desc
 	},
-	{}
+	{ }	/* Terminate list */
 };
 
 
