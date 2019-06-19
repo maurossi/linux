@@ -342,6 +342,20 @@ struct dma_buf_ops {
 
 	int (*vmap)(struct dma_buf *dmabuf, struct dma_buf_map *map);
 	void (*vunmap)(struct dma_buf *dmabuf, struct dma_buf_map *map);
+
+	/**
+	 * @get_flags:
+	 *
+	 * This is called by dma_buf_get_flags and is used to get the buffer's
+	 * flags.
+	 * This callback is optional.
+	 *
+	 * Returns:
+	 *
+	 * 0 on success or a negative error code on failure. On success flags
+	 * will be populated with the buffer's flags.
+	 */
+	int (*get_flags)(struct dma_buf *dmabuf, unsigned long *flags);
 };
 
 /**
@@ -696,4 +710,5 @@ int dma_buf_mmap(struct dma_buf *, struct vm_area_struct *,
 		 unsigned long);
 int dma_buf_vmap(struct dma_buf *dmabuf, struct dma_buf_map *map);
 void dma_buf_vunmap(struct dma_buf *dmabuf, struct dma_buf_map *map);
+int dma_buf_get_flags(struct dma_buf *dmabuf, unsigned long *flags);
 #endif /* __DMA_BUF_H__ */
