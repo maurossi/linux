@@ -399,6 +399,91 @@ static void dce_transform_set_scaler(
 	REG_UPDATE(LB_DATA_FORMAT, ALPHA_EN, data->lb_params.alpha_en);
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_transform_set_scaler(
+	struct transform *xfm,
+	const struct scaler_data *data)
+{
+	struct dce_transform *xfm_dce = TO_DCE_TRANSFORM(xfm);
+	bool is_scaling_required;
+	bool filter_updated = false;
+	const uint16_t *coeffs_v, *coeffs_h;
+
+	/*Use whole line buffer memory always*/
+	REG_SET(DC_LB_MEMORY_SPLIT, 0,
+		DC_LB_MEMORY_CONFIG, 0);
+
+	REG_SET(DC_LB_MEM_SIZE, 0,
+		DC_LB_MEMORY_SIZE, xfm_dce->lb_memory_size);
+
+	/* Clear SCL_F_SHARP_CONTROL value to 0 */
+	REG_WRITE(SCL_F_SHARP_CONTROL, 0);
+
+	/* 1. Program overscan */
+	program_overscan(xfm_dce, data);
+
+	/* 2. Program taps and configuration */
+	is_scaling_required = setup_scaling_configuration(xfm_dce, data);
+
+	if (is_scaling_required) {
+		/* 3. Calculate and program ratio, filter initialization */
+		struct scl_ratios_inits inits = { 0 };
+
+		calculate_inits(xfm_dce, data, &inits);
+
+		program_scl_ratios_inits(xfm_dce, &inits);
+
+		coeffs_v = get_filter_coeffs_16p(data->taps.v_taps, data->ratios.vert);
+		coeffs_h = get_filter_coeffs_16p(data->taps.h_taps, data->ratios.horz);
+
+		if (coeffs_v != xfm_dce->filter_v || coeffs_h != xfm_dce->filter_h) {
+			/* 4. Program vertical filters */
+			if (xfm_dce->filter_v == NULL)
+				REG_SET(SCL_VERT_FILTER_CONTROL, 0,
+						SCL_V_2TAP_HARDCODE_COEF_EN, 0);
+			program_multi_taps_filter(
+					xfm_dce,
+					data->taps.v_taps,
+					coeffs_v,
+					FILTER_TYPE_RGB_Y_VERTICAL);
+			program_multi_taps_filter(
+					xfm_dce,
+					data->taps.v_taps,
+					coeffs_v,
+					FILTER_TYPE_ALPHA_VERTICAL);
+
+			/* 5. Program horizontal filters */
+			if (xfm_dce->filter_h == NULL)
+				REG_SET(SCL_HORZ_FILTER_CONTROL, 0,
+						SCL_H_2TAP_HARDCODE_COEF_EN, 0);
+			program_multi_taps_filter(
+					xfm_dce,
+					data->taps.h_taps,
+					coeffs_h,
+					FILTER_TYPE_RGB_Y_HORIZONTAL);
+			program_multi_taps_filter(
+					xfm_dce,
+					data->taps.h_taps,
+					coeffs_h,
+					FILTER_TYPE_ALPHA_HORIZONTAL);
+
+			xfm_dce->filter_v = coeffs_v;
+			xfm_dce->filter_h = coeffs_h;
+			filter_updated = true;
+		}
+	}
+
+	/* 6. Program the viewport */
+	program_viewport(xfm_dce, &data->viewport);
+
+	/* 7. Set bit to flip to new coefficient memory */
+	if (filter_updated)
+		REG_UPDATE(SCL_UPDATE, SCL_COEF_UPDATE_COMPLETE, 1);
+
+/*	REG_UPDATE(LB_DATA_FORMAT, ALPHA_EN, data->lb_params.alpha_en); */
+}
+#endif
+
 /*****************************************************************************
  * set_clamp
  *
@@ -1335,6 +1420,21 @@ static const struct transform_funcs dce_transform_funcs = {
 	.transform_get_optimal_number_of_taps = dce_transform_get_optimal_number_of_taps
 };
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static const struct transform_funcs dce60_transform_funcs = {
+	.transform_reset = dce_transform_reset,
+	.transform_set_scaler = dce60_transform_set_scaler,
+	.transform_set_gamut_remap = dce_transform_set_gamut_remap,
+	.opp_set_csc_adjustment = dce110_opp_set_csc_adjustment,
+	.opp_set_csc_default = dce110_opp_set_csc_default,
+	.opp_power_on_regamma_lut = dce110_opp_power_on_regamma_lut,
+	.opp_program_regamma_pwl = dce110_opp_program_regamma_pwl,
+	.opp_set_regamma_mode = dce110_opp_set_regamma_mode,
+	.transform_set_pixel_storage_depth = dce_transform_set_pixel_storage_depth,
+	.transform_get_optimal_number_of_taps = dce_transform_get_optimal_number_of_taps
+};
+#endif
+
 /*****************************************/
 /* Constructor, Destructor               */
 /*****************************************/
@@ -1365,3 +1465,32 @@ void dce_transform_construct(
 	xfm_dce->lb_bits_per_entry = LB_BITS_PER_ENTRY;
 	xfm_dce->lb_memory_size = LB_TOTAL_NUMBER_OF_ENTRIES; /*0x6B0*/
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_transform_construct(
+	struct dce_transform *xfm_dce,
+	struct dc_context *ctx,
+	uint32_t inst,
+	const struct dce_transform_registers *regs,
+	const struct dce_transform_shift *xfm_shift,
+	const struct dce_transform_mask *xfm_mask)
+{
+	xfm_dce->base.ctx = ctx;
+
+	xfm_dce->base.inst = inst;
+	xfm_dce->base.funcs = &dce60_transform_funcs;
+
+	xfm_dce->regs = regs;
+	xfm_dce->xfm_shift = xfm_shift;
+	xfm_dce->xfm_mask = xfm_mask;
+
+	xfm_dce->prescaler_on = true;
+	xfm_dce->lb_pixel_depth_supported =
+			LB_PIXEL_DEPTH_18BPP |
+			LB_PIXEL_DEPTH_24BPP |
+			LB_PIXEL_DEPTH_30BPP;
+
+	xfm_dce->lb_bits_per_entry = LB_BITS_PER_ENTRY;
+	xfm_dce->lb_memory_size = LB_TOTAL_NUMBER_OF_ENTRIES; /*0x6B0*/
+}
+#endif
