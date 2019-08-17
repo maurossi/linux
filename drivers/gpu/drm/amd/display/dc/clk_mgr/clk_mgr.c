@@ -78,6 +78,9 @@ struct clk_mgr *dc_clk_mgr_create(struct dc_context *ctx, struct pp_smu_funcs *p
 	}
 
 	switch (asic_id.chip_family) {
+#if defined(CONFIG_DRM_AMD_DC_SI)
+	case FAMILY_SI:
+#endif
 	case FAMILY_CI:
 	case FAMILY_KV:
 		dce_clk_mgr_construct(ctx, clk_mgr);
