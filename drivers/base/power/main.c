@@ -1897,6 +1897,7 @@ int dpm_prepare(pm_message_t state)
 			}
 			dev_info(dev, "not prepared for power transition: code %d\n",
 				 error);
+			dpm_save_failed_dev(dev_name(dev));
 			put_device(dev);
 			break;
 		}
