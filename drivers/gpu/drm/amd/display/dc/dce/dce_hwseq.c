@@ -57,25 +57,27 @@ void dce_pipe_control_lock(struct dc *dc,
 	    pipe->stream_res.tg->funcs->is_blanked(pipe->stream_res.tg))
 		return;
 
-	val = REG_GET_4(BLND_V_UPDATE_LOCK[pipe->stream_res.tg->inst],
-			BLND_DCP_GRPH_V_UPDATE_LOCK, &dcp_grph,
-			BLND_SCL_V_UPDATE_LOCK, &scl,
-			BLND_BLND_V_UPDATE_LOCK, &blnd,
-			BLND_V_UPDATE_LOCK_MODE, &update_lock_mode);
+	if (REG(BLND_V_UPDATE_LOCK)) {
+		val = REG_GET_4(BLND_V_UPDATE_LOCK[pipe->stream_res.tg->inst],
+				BLND_DCP_GRPH_V_UPDATE_LOCK, &dcp_grph,
+				BLND_SCL_V_UPDATE_LOCK, &scl,
+				BLND_BLND_V_UPDATE_LOCK, &blnd,
+				BLND_V_UPDATE_LOCK_MODE, &update_lock_mode);
 
-	dcp_grph = lock_val;
-	scl = lock_val;
-	blnd = lock_val;
-	update_lock_mode = lock_val;
+		dcp_grph = lock_val;
+		scl = lock_val;
+		blnd = lock_val;
+		update_lock_mode = lock_val;
 
-	REG_SET_2(BLND_V_UPDATE_LOCK[pipe->stream_res.tg->inst], val,
-			BLND_DCP_GRPH_V_UPDATE_LOCK, dcp_grph,
-			BLND_SCL_V_UPDATE_LOCK, scl);
-
-	if (hws->masks->BLND_BLND_V_UPDATE_LOCK != 0)
 		REG_SET_2(BLND_V_UPDATE_LOCK[pipe->stream_res.tg->inst], val,
-				BLND_BLND_V_UPDATE_LOCK, blnd,
-				BLND_V_UPDATE_LOCK_MODE, update_lock_mode);
+				BLND_DCP_GRPH_V_UPDATE_LOCK, dcp_grph,
+				BLND_SCL_V_UPDATE_LOCK, scl);
+
+		if (hws->masks->BLND_BLND_V_UPDATE_LOCK != 0)
+			REG_SET_2(BLND_V_UPDATE_LOCK[pipe->stream_res.tg->inst], val,
+					BLND_BLND_V_UPDATE_LOCK, blnd,
+					BLND_V_UPDATE_LOCK_MODE, update_lock_mode);
+	}
 
 	if (hws->wa.blnd_crtc_trigger) {
 		if (!lock) {
@@ -114,14 +116,16 @@ void dce_set_blender_mode(struct dce_hwseq *hws,
 		break;
 	}
 
-	REG_UPDATE(BLND_CONTROL[blnd_inst],
-		BLND_MODE, blnd_mode);
+	if (REG(BLND_CONTROL)) {
+		REG_UPDATE(BLND_CONTROL[blnd_inst],
+			BLND_MODE, blnd_mode);
 
-	if (hws->masks->BLND_ALPHA_MODE != 0) {
-		REG_UPDATE_3(BLND_CONTROL[blnd_inst],
-			BLND_FEEDTHROUGH_EN, feedthrough,
-			BLND_ALPHA_MODE, alpha_mode,
-			BLND_MULTIPLIED_MODE, multiplied_mode);
+		if (hws->masks->BLND_ALPHA_MODE != 0) {
+			REG_UPDATE_3(BLND_CONTROL[blnd_inst],
+				BLND_FEEDTHROUGH_EN, feedthrough,
+				BLND_ALPHA_MODE, alpha_mode,
+				BLND_MULTIPLIED_MODE, multiplied_mode);
+		}
 	}
 }
 

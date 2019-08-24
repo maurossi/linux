@@ -660,7 +660,7 @@ static bool dcn10_dmcu_setup_psr(struct dmcu *dmcu,
 	link->link_enc->funcs->psr_program_secondary_packet(link->link_enc,
 			psr_context->sdpTransmitLineNumDeadline);
 
-	if (psr_context->allow_smu_optimizations)
+	if (REG(SMU_INTERRUPT_CONTROL) && psr_context->allow_smu_optimizations)
 		REG_UPDATE(SMU_INTERRUPT_CONTROL, DC_SMU_INT_ENABLE, 1);
 
 	/* waitDMCUReadyForCmd */

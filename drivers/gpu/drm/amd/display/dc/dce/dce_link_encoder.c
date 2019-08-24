@@ -404,8 +404,9 @@ static void set_dp_phy_pattern_hbr2_compliance_cp2520_2(
 			DP_VBID_DISABLE, 1,
 			DP_VID_ENHANCED_FRAME_MODE, 1);
 
-	/* swap every BS with SR */
-	REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_BS_COUNT, 0);
+	/* swap every BS with SR when supported (DCE8 and later) */
+	if (REG(DP_DPHY_SCRAM_CNTL))
+		REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_BS_COUNT, 0);
 
 	/* select cp2520 patterns */
 	if (REG(DP_DPHY_HBR2_PATTERN_CONTROL))
@@ -440,7 +441,8 @@ static void set_dp_phy_pattern_passthrough_mode(
 			DP_VBID_DISABLE, 0,
 			DP_VID_ENHANCED_FRAME_MODE, 1);
 
-	REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_BS_COUNT, 0x1FF);
+	if (REG(DP_DPHY_SCRAM_CNTL))
+		REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_BS_COUNT, 0x1FF);
 
 	/* set link training complete */
 	set_link_training_complete(enc110, true);
@@ -486,8 +488,9 @@ static void configure_encoder(
 	REG_SET(DP_CONFIG, 0,
 			DP_UDI_LANES, link_settings->lane_count - LANE_COUNT_ONE);
 
-	/* setup scrambler */
-	REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_ADVANCE, 1);
+	/* setup scrambler when supported (DCE8 and later) */
+	if (REG(DP_DPHY_SCRAM_CNTL))
+		REG_UPDATE(DP_DPHY_SCRAM_CNTL, DPHY_SCRAMBLER_ADVANCE, 1);
 }
 
 static void aux_initialize(

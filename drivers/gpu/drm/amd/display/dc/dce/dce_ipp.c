@@ -225,10 +225,13 @@ static void dce_ipp_set_degamma(
 
 	ASSERT(mode == IPP_DEGAMMA_MODE_BYPASS || mode == IPP_DEGAMMA_MODE_HW_sRGB);
 
-	REG_SET_3(DEGAMMA_CONTROL, 0,
+	REG_SET_2(DEGAMMA_CONTROL, 0,
 		  GRPH_DEGAMMA_MODE, degamma_type,
-		  CURSOR_DEGAMMA_MODE, degamma_type,
-		  CURSOR2_DEGAMMA_MODE, degamma_type);
+		  CURSOR_DEGAMMA_MODE, degamma_type);
+
+	if (ipp_dce->ipp_mask->CURSOR2_DEGAMMA_MODE != 0)
+		REG_SET(DEGAMMA_CONTROL, 0,
+			CURSOR2_DEGAMMA_MODE, degamma_type);
 }
 
 static const struct ipp_funcs dce_ipp_funcs = {

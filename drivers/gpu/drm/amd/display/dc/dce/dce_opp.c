@@ -108,37 +108,39 @@ static void set_truncation(
 		const struct bit_depth_reduction_params *params)
 {
 	/*Disable truncation*/
-	REG_UPDATE_3(FMT_BIT_DEPTH_CONTROL,
+	REG_UPDATE_2(FMT_BIT_DEPTH_CONTROL,
 			FMT_TRUNCATE_EN, 0,
-			FMT_TRUNCATE_DEPTH, 0,
-			FMT_TRUNCATE_MODE, 0);
+			FMT_TRUNCATE_DEPTH, 0);
 
+	if (opp110->opp_mask->FMT_TRUNCATE_MODE != 0)
+		REG_UPDATE(FMT_BIT_DEPTH_CONTROL,
+			FMT_TRUNCATE_MODE, 0);
 
 	if (params->pixel_encoding == PIXEL_ENCODING_YCBCR422) {
 		/*  8bpc trunc on YCbCr422*/
 		if (params->flags.TRUNCATE_DEPTH == 1)
-			REG_UPDATE_3(FMT_BIT_DEPTH_CONTROL,
+			REG_UPDATE_2(FMT_BIT_DEPTH_CONTROL,
 					FMT_TRUNCATE_EN, 1,
-					FMT_TRUNCATE_DEPTH, 1,
-					FMT_TRUNCATE_MODE, 0);
+					FMT_TRUNCATE_DEPTH, 1);
 		else if (params->flags.TRUNCATE_DEPTH == 2)
 			/*  10bpc trunc on YCbCr422*/
-			REG_UPDATE_3(FMT_BIT_DEPTH_CONTROL,
+			REG_UPDATE_2(FMT_BIT_DEPTH_CONTROL,
 					FMT_TRUNCATE_EN, 1,
-					FMT_TRUNCATE_DEPTH, 2,
-					FMT_TRUNCATE_MODE, 0);
+					FMT_TRUNCATE_DEPTH, 2);
 		return;
 	}
 	/* on other format-to do */
 	if (params->flags.TRUNCATE_ENABLED == 0)
 		return;
 	/*Set truncation depth and Enable truncation*/
-	REG_UPDATE_3(FMT_BIT_DEPTH_CONTROL,
+	REG_UPDATE_2(FMT_BIT_DEPTH_CONTROL,
 				FMT_TRUNCATE_EN, 1,
 				FMT_TRUNCATE_DEPTH,
-				params->flags.TRUNCATE_DEPTH,
-				FMT_TRUNCATE_MODE,
-				params->flags.TRUNCATE_MODE);
+				params->flags.TRUNCATE_DEPTH);
+	if (opp110->opp_mask->FMT_TRUNCATE_MODE != 0)
+		REG_UPDATE(FMT_BIT_DEPTH_CONTROL,
+					FMT_TRUNCATE_MODE,
+					params->flags.TRUNCATE_MODE);
 }
 
 
@@ -350,23 +352,25 @@ void dce110_opp_set_clamping(
 			FMT_CLAMP_COLOR_FORMAT, 3);
 		break;
 	case CLAMPING_LIMITED_RANGE_PROGRAMMABLE:
-		/*Set clamp control*/
-		REG_SET_2(FMT_CLAMP_CNTL, 0,
-			FMT_CLAMP_DATA_EN, 1,
-			FMT_CLAMP_COLOR_FORMAT, 7);
+		if (REG(FMT_CLAMP_COMPONENT_R)) {
+			/*Set clamp control*/
+			REG_SET_2(FMT_CLAMP_CNTL, 0,
+				FMT_CLAMP_DATA_EN, 1,
+				FMT_CLAMP_COLOR_FORMAT, 7);
 
-		/*set the defaults*/
-		REG_SET_2(FMT_CLAMP_COMPONENT_R, 0,
-			FMT_CLAMP_LOWER_R, 0x10,
-			FMT_CLAMP_UPPER_R, 0xFEF);
+			/*set the defaults*/
+			REG_SET_2(FMT_CLAMP_COMPONENT_R, 0,
+				FMT_CLAMP_LOWER_R, 0x10,
+				FMT_CLAMP_UPPER_R, 0xFEF);
 
-		REG_SET_2(FMT_CLAMP_COMPONENT_G, 0,
-			FMT_CLAMP_LOWER_G, 0x10,
-			FMT_CLAMP_UPPER_G, 0xFEF);
+			REG_SET_2(FMT_CLAMP_COMPONENT_G, 0,
+				FMT_CLAMP_LOWER_G, 0x10,
+				FMT_CLAMP_UPPER_G, 0xFEF);
 
-		REG_SET_2(FMT_CLAMP_COMPONENT_B, 0,
-			FMT_CLAMP_LOWER_B, 0x10,
-			FMT_CLAMP_UPPER_B, 0xFEF);
+			REG_SET_2(FMT_CLAMP_COMPONENT_B, 0,
+				FMT_CLAMP_LOWER_B, 0x10,
+				FMT_CLAMP_UPPER_B, 0xFEF);
+		}
 		break;
 	default:
 		break;
@@ -384,28 +388,40 @@ static void set_pixel_encoding(
 	struct dce110_opp *opp110,
 	const struct clamping_and_pixel_encoding_params *params)
 {
-	if (opp110->opp_mask->FMT_CBCR_BIT_REDUCTION_BYPASS)
-		REG_UPDATE_3(FMT_CONTROL,
-				FMT_PIXEL_ENCODING, 0,
-				FMT_SUBSAMPLING_MODE, 0,
-				FMT_CBCR_BIT_REDUCTION_BYPASS, 0);
-	else
-		REG_UPDATE_2(FMT_CONTROL,
-				FMT_PIXEL_ENCODING, 0,
-				FMT_SUBSAMPLING_MODE, 0);
+	if (opp110->opp_mask->FMT_SUBSAMPLING_MODE != 0) {
+		if (opp110->opp_mask->FMT_CBCR_BIT_REDUCTION_BYPASS)
+			REG_UPDATE_3(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 0,
+					FMT_SUBSAMPLING_MODE, 0,
+					FMT_CBCR_BIT_REDUCTION_BYPASS, 0);
+		else
+			REG_UPDATE_2(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 0,
+					FMT_SUBSAMPLING_MODE, 0);
 
-	if (params->pixel_encoding == PIXEL_ENCODING_YCBCR422) {
-		REG_UPDATE_2(FMT_CONTROL,
-				FMT_PIXEL_ENCODING, 1,
-				FMT_SUBSAMPLING_ORDER, 0);
-	}
-	if (params->pixel_encoding == PIXEL_ENCODING_YCBCR420) {
-		REG_UPDATE_3(FMT_CONTROL,
-				FMT_PIXEL_ENCODING, 2,
-				FMT_SUBSAMPLING_MODE, 2,
-				FMT_CBCR_BIT_REDUCTION_BYPASS, 1);
-	}
+		if (params->pixel_encoding == PIXEL_ENCODING_YCBCR422)
+			REG_UPDATE_2(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 1,
+					FMT_SUBSAMPLING_ORDER, 0);
 
+		if (params->pixel_encoding == PIXEL_ENCODING_YCBCR420)
+			REG_UPDATE_3(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 2,
+					FMT_SUBSAMPLING_MODE, 2,
+					FMT_CBCR_BIT_REDUCTION_BYPASS, 1);
+	}
+	else { /* DCE6 */
+		REG_UPDATE(FMT_CONTROL,
+				FMT_PIXEL_ENCODING, 0);
+
+		if (params->pixel_encoding == PIXEL_ENCODING_YCBCR422)
+			REG_UPDATE(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 1);
+
+		if (params->pixel_encoding == PIXEL_ENCODING_YCBCR420)
+			REG_UPDATE(FMT_CONTROL,
+					FMT_PIXEL_ENCODING, 2);
+	}
 }
 
 void dce110_opp_program_bit_depth_reduction(
