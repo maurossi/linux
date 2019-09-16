@@ -407,13 +407,15 @@ static void goodix_ts_report_touch_8b(struct goodix_ts_data *ts, u8 *coor_data)
 	int input_x = get_unaligned_le16(&coor_data[1]);
 	int input_y = get_unaligned_le16(&coor_data[3]);
 	int input_w = get_unaligned_le16(&coor_data[5]);
+	int input_p = get_unaligned_le16(&coor_data[5]);
 
 	input_mt_slot(ts->input_dev, id);
 	input_mt_report_slot_state(ts->input_dev, MT_TOOL_FINGER, true);
 	touchscreen_report_pos(ts->input_dev, &ts->prop,
 			       input_x, input_y, true);
-	input_report_abs(ts->input_dev, ABS_MT_TOUCH_MAJOR, input_w);
 	input_report_abs(ts->input_dev, ABS_MT_WIDTH_MAJOR, input_w);
+	/* Add ABS_MT_PRESSURE for Android to recognize the stylus hovering */
+	input_report_abs(ts->input_dev, ABS_MT_PRESSURE, input_p);
 }
 
 static void goodix_ts_report_touch_9b(struct goodix_ts_data *ts, u8 *coor_data)
@@ -1113,7 +1115,7 @@ static int goodix_configure_dev(struct goodix_ts_data *ts)
 	input_set_capability(ts->input_dev, EV_ABS, ABS_MT_POSITION_X);
 	input_set_capability(ts->input_dev, EV_ABS, ABS_MT_POSITION_Y);
 	input_set_abs_params(ts->input_dev, ABS_MT_WIDTH_MAJOR, 0, 255, 0, 0);
-	input_set_abs_params(ts->input_dev, ABS_MT_TOUCH_MAJOR, 0, 255, 0, 0);
+	input_set_abs_params(ts->input_dev, ABS_MT_PRESSURE, 0, 255, 0, 0);
 
 	/* Read configuration and apply touchscreen parameters */
 	goodix_read_config(ts);
