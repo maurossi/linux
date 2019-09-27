@@ -261,7 +261,7 @@ $(obj)/oid_registry_data.c: $(srctree)/include/linux/oid_registry.h \
 	$(call cmd,build_OID_registry)
 
 quiet_cmd_build_OID_registry = GEN     $@
-      cmd_build_OID_registry = perl $(srctree)/$(src)/build_OID_registry $< $@
+      cmd_build_OID_registry = $(PERL_PATH) $(srctree)/$(src)/build_OID_registry $< $@
 
 clean-files	+= oid_registry_data.c
 
