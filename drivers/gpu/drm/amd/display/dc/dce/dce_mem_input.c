@@ -174,6 +174,22 @@ static void program_urgency_watermark(
 		URGENCY_HIGH_WATERMARK, urgency_high_wm);
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_program_urgency_watermark(
+	struct dce_mem_input *dce_mi,
+	uint32_t wm_select,
+	uint32_t urgency_low_wm,
+	uint32_t urgency_high_wm)
+{
+	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
+		LATENCY_WATERMARK_MASK, wm_select);
+
+	REG_SET_2(DPG_PIPE_URGENCY_CONTROL, 0,
+		URGENCY_LOW_WATERMARK, urgency_low_wm,
+		URGENCY_HIGH_WATERMARK, urgency_high_wm);
+}
+#endif
+
 static void dce120_program_urgency_watermark(
 	struct dce_mem_input *dce_mi,
 	uint32_t wm_select,
@@ -224,6 +240,37 @@ static void program_nbp_watermark(
 				PSTATE_CHANGE_WATERMARK, nbp_wm);
 	}
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_program_nbp_watermark(
+	struct dce_mem_input *dce_mi,
+	uint32_t wm_select,
+	uint32_t nbp_wm)
+{
+	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
+		NB_PSTATE_CHANGE_WATERMARK_MASK, wm_select);
+
+	REG_UPDATE_3(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
+		NB_PSTATE_CHANGE_ENABLE, 1,
+		NB_PSTATE_CHANGE_URGENT_DURING_REQUEST, 1,
+		NB_PSTATE_CHANGE_NOT_SELF_REFRESH_DURING_REQUEST, 1);
+
+	REG_UPDATE(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
+		NB_PSTATE_CHANGE_WATERMARK, nbp_wm);
+}
+
+static void dce60_program_stutter_watermark(
+	struct dce_mem_input *dce_mi,
+	uint32_t wm_select,
+	uint32_t stutter_mark)
+{
+	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
+		STUTTER_EXIT_SELF_REFRESH_WATERMARK_MASK, wm_select);
+
+	REG_UPDATE(DPG_PIPE_STUTTER_CONTROL,
+		STUTTER_EXIT_SELF_REFRESH_WATERMARK, stutter_mark);
+}
+#endif
 
 static void dce120_program_stutter_watermark(
 	struct dce_mem_input *dce_mi,
@@ -285,6 +332,34 @@ static void dce_mi_program_display_marks(
 	program_stutter_watermark(dce_mi, 2, stutter_exit.a_mark); /* set a */
 	program_stutter_watermark(dce_mi, 1, stutter_exit.d_mark); /* set d */
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_mi_program_display_marks(
+	struct mem_input *mi,
+	struct dce_watermarks nbp,
+	struct dce_watermarks stutter_exit,
+	struct dce_watermarks stutter_enter,
+	struct dce_watermarks urgent,
+	uint32_t total_dest_line_time_ns)
+{
+	struct dce_mem_input *dce_mi = TO_DCE_MEM_INPUT(mi);
+	uint32_t stutter_en = mi->ctx->dc->debug.disable_stutter ? 0 : 1;
+
+	dce60_program_urgency_watermark(dce_mi, 2, /* set a */
+			urgent.a_mark, total_dest_line_time_ns);
+	dce60_program_urgency_watermark(dce_mi, 1, /* set d */
+			urgent.d_mark, total_dest_line_time_ns);
+
+	REG_UPDATE_2(DPG_PIPE_STUTTER_CONTROL,
+		STUTTER_ENABLE, stutter_en,
+		STUTTER_IGNORE_FBC, 1);
+	dce60_program_nbp_watermark(dce_mi, 2, nbp.a_mark); /* set a */
+	dce60_program_nbp_watermark(dce_mi, 1, nbp.d_mark); /* set d */
+
+	dce60_program_stutter_watermark(dce_mi, 2, stutter_exit.a_mark); /* set a */
+	dce60_program_stutter_watermark(dce_mi, 1, stutter_exit.d_mark); /* set d */
+}
+#endif
 
 static void dce112_mi_program_display_marks(struct mem_input *mi,
 	struct dce_watermarks nbp,
@@ -741,6 +816,20 @@ static const struct mem_input_funcs dce_mi_funcs = {
 	.mem_input_is_flip_pending = dce_mi_is_flip_pending
 };
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static const struct mem_input_funcs dce60_mi_funcs = {
+	.mem_input_program_display_marks = dce60_mi_program_display_marks,
+	.allocate_mem_input = dce_mi_allocate_dmif,
+	.free_mem_input = dce_mi_free_dmif,
+	.mem_input_program_surface_flip_and_addr =
+			dce_mi_program_surface_flip_and_addr,
+	.mem_input_program_pte_vm = dce_mi_program_pte_vm,
+	.mem_input_program_surface_config =
+			dce_mi_program_surface_config,
+	.mem_input_is_flip_pending = dce_mi_is_flip_pending
+};
+#endif
+
 static const struct mem_input_funcs dce112_mi_funcs = {
 	.mem_input_program_display_marks = dce112_mi_program_display_marks,
 	.allocate_mem_input = dce_mi_allocate_dmif,
@@ -782,6 +871,20 @@ void dce_mem_input_construct(
 	dce_mi->shifts = mi_shift;
 	dce_mi->masks = mi_mask;
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_mem_input_construct(
+	struct dce_mem_input *dce_mi,
+	struct dc_context *ctx,
+	int inst,
+	const struct dce_mem_input_registers *regs,
+	const struct dce_mem_input_shift *mi_shift,
+	const struct dce_mem_input_mask *mi_mask)
+{
+	dce_mem_input_construct(dce_mi, ctx, inst, regs, mi_shift, mi_mask);
+	dce_mi->base.funcs = &dce60_mi_funcs;
+}
+#endif
 
 void dce112_mem_input_construct(
 	struct dce_mem_input *dce_mi,

@@ -32,7 +32,7 @@
 #include "dce110/dce110_hw_sequencer.h"
 #include "dce100/dce100_hw_sequencer.h"
 
-/* include DCE8 register header files */
+/* include DCE6 register header files */
 #include "dce/dce_6_0_d.h"
 #include "dce/dce_6_0_sh_mask.h"
 
