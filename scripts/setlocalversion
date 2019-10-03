@@ -115,7 +115,7 @@ scm_version()
 		# git-update-index(1), git-diff-index(1), and git-status(1).
 		if {
 			git --no-optional-locks status -uno --porcelain 2>/dev/null ||
-			git diff-index --name-only HEAD
+			git diff --name-only HEAD
 		} | grep -qvE '^(.. )?scripts/package'; then
 			printf '%s' -dirty
 		fi
