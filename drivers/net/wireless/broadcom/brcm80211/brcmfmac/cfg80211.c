@@ -2983,6 +2983,7 @@ static s32 brcmf_inform_single_bss(struct brcmf_cfg80211_info *cfg,
 	struct brcmu_chan ch;
 	u16 channel;
 	u32 freq;
+	u64 notify_timestamp;
 	u16 notify_capability;
 	u16 notify_interval;
 	u8 *notify_ie;
@@ -3011,6 +3012,7 @@ static s32 brcmf_inform_single_bss(struct brcmf_cfg80211_info *cfg,
 	bss_data.scan_width = NL80211_BSS_CHAN_WIDTH_20;
 	bss_data.boottime_ns = ktime_to_ns(ktime_get_boottime());
 
+	notify_timestamp = ktime_to_us(ktime_get_boottime());
 	notify_capability = le16_to_cpu(bi->capability);
 	notify_interval = le16_to_cpu(bi->beacon_period);
 	notify_ie = (u8 *)bi + le16_to_cpu(bi->ie_offset);
@@ -3022,11 +3024,12 @@ static s32 brcmf_inform_single_bss(struct brcmf_cfg80211_info *cfg,
 	brcmf_dbg(CONN, "Capability: %X\n", notify_capability);
 	brcmf_dbg(CONN, "Beacon interval: %d\n", notify_interval);
 	brcmf_dbg(CONN, "Signal: %d\n", bss_data.signal);
+	brcmf_dbg(CONN, "Timestamp: %llu\n", notify_timestamp);
 
 	bss = cfg80211_inform_bss_data(wiphy, &bss_data,
 				       CFG80211_BSS_FTYPE_UNKNOWN,
 				       (const u8 *)bi->BSSID,
-				       0, notify_capability,
+				       notify_timestamp, notify_capability,
 				       notify_interval, notify_ie,
 				       notify_ielen, GFP_KERNEL);
 
@@ -3085,6 +3088,7 @@ static s32 brcmf_inform_ibss(struct brcmf_cfg80211_info *cfg,
 	u8 *buf = NULL;
 	s32 err = 0;
 	u32 freq;
+	u64 notify_timestamp;
 	u16 notify_capability;
 	u16 notify_interval;
 	u8 *notify_ie;
@@ -3122,6 +3126,7 @@ static s32 brcmf_inform_ibss(struct brcmf_cfg80211_info *cfg,
 	cfg->channel = freq;
 	notify_channel = ieee80211_get_channel(wiphy, freq);
 
+	notify_timestamp = ktime_to_us(ktime_get_boottime());
 	notify_capability = le16_to_cpu(bi->capability);
 	notify_interval = le16_to_cpu(bi->beacon_period);
 	notify_ie = (u8 *)bi + le16_to_cpu(bi->ie_offset);
@@ -3132,9 +3137,10 @@ static s32 brcmf_inform_ibss(struct brcmf_cfg80211_info *cfg,
 	brcmf_dbg(CONN, "capability: %X\n", notify_capability);
 	brcmf_dbg(CONN, "beacon interval: %d\n", notify_interval);
 	brcmf_dbg(CONN, "signal: %d\n", notify_signal);
+	brcmf_dbg(CONN, "timestamp: %llu\n", notify_timestamp);
 
 	bss = cfg80211_inform_bss(wiphy, notify_channel,
-				  CFG80211_BSS_FTYPE_UNKNOWN, bssid, 0,
+				  CFG80211_BSS_FTYPE_UNKNOWN, bssid, notify_timestamp,
 				  notify_capability, notify_interval,
 				  notify_ie, notify_ielen, notify_signal,
 				  GFP_KERNEL);
