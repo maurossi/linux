@@ -1889,7 +1889,7 @@ composite_setup(struct usb_gadget *gadget, const struct usb_ctrlrequest *ctrl)
 		 * works. There is no need to check if set_alt() is not NULL
 		 * as we check this in usb_add_function().
 		 */
-		if (w_value && !f->get_alt)
+		if (w_value && !f->set_alt)
 			break;
 
 		spin_lock(&cdev->lock);
