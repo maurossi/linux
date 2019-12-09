@@ -330,7 +330,7 @@ static struct cpuidle_state byt_cstates[] __initdata = {
 	{
 		.name = "C6N",
 		.desc = "MWAIT 0x58",
-		.flags = MWAIT2flg(0x58) | CPUIDLE_FLAG_TLB_FLUSHED,
+		.flags = MWAIT2flg(0x58) | CPUIDLE_FLAG_UNUSABLE,
 		.exit_latency = 300,
 		.target_residency = 275,
 		.enter = &intel_idle,
@@ -338,7 +338,7 @@ static struct cpuidle_state byt_cstates[] __initdata = {
 	{
 		.name = "C6S",
 		.desc = "MWAIT 0x52",
-		.flags = MWAIT2flg(0x52) | CPUIDLE_FLAG_TLB_FLUSHED,
+		.flags = MWAIT2flg(0x52) | CPUIDLE_FLAG_UNUSABLE,
 		.exit_latency = 500,
 		.target_residency = 560,
 		.enter = &intel_idle,
