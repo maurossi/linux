@@ -277,7 +277,7 @@ static bool hw_support_mmap(struct snd_pcm_substream *substream)
 	case SNDRV_DMA_TYPE_VMALLOC:
 		return true;
 	default:
-		return dma_can_mmap(dmabuf->dev.dev);
+		return false;
 	}
 }
 
