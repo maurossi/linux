@@ -246,12 +246,13 @@ static bool hw_support_mmap(struct snd_pcm_substream *substream)
 	if (!(substream->runtime->hw.info & SNDRV_PCM_INFO_MMAP))
 		return false;
 
-	if (substream->ops->mmap ||
+#if defined(CONFIG_MMU) || !defined(CONFIG_HAS_DMA)
+	if (!substream->ops->mmap &&
 	    (substream->dma_buffer.dev.type != SNDRV_DMA_TYPE_DEV &&
 	     substream->dma_buffer.dev.type != SNDRV_DMA_TYPE_DEV_UC))
-		return true;
-
-	return dma_can_mmap(substream->dma_buffer.dev.dev);
+		return false;
+#endif
+	return true;
 }
 
 static int constrain_mask_params(struct snd_pcm_substream *substream,
