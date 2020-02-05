@@ -169,10 +169,10 @@ static ssize_t quota_proc_write(struct file *file, const char __user *input,
 	return size;
 }
 
-static const struct file_operations q2_counter_fops = {
-	.read		= quota_proc_read,
-	.write		= quota_proc_write,
-	.llseek		= default_llseek,
+static const struct proc_ops q2_counter_proc_ops = {
+	.proc_read		= quota_proc_read,
+	.proc_write		= quota_proc_write,
+	.proc_lseek		= default_llseek,
 };
 
 static struct xt_quota_counter *
@@ -239,7 +239,7 @@ q2_get_counter(const struct xt_quota_mtinfo2 *q)
 
 	/* create_proc_entry() is not spin_lock happy */
 	p = e->procfs_entry = proc_create_data(e->name, quota_list_perms,
-	                      proc_xt_quota, &q2_counter_fops, e);
+	                      proc_xt_quota, &q2_counter_proc_ops, e);
 
 	if (IS_ERR_OR_NULL(p)) {
 		spin_lock_bh(&counter_list_lock);

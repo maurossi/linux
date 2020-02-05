@@ -775,14 +775,14 @@ static int iface_stat_fmt_proc_show(struct seq_file *m, void *v)
 	return 0;
 }
 
-static const struct file_operations read_u64_fops = {
-	.read		= read_proc_u64,
-	.llseek		= default_llseek,
+static const struct proc_ops read_u64_proc_ops = {
+	.proc_read		= read_proc_u64,
+	.proc_lseek		= default_llseek,
 };
 
-static const struct file_operations read_bool_fops = {
-	.read		= read_proc_bool,
-	.llseek		= default_llseek,
+static const struct proc_ops read_bool_proc_ops = {
+	.proc_read		= read_proc_bool,
+	.proc_lseek		= default_llseek,
 };
 
 static void iface_create_proc_worker(struct work_struct *work)
@@ -803,19 +803,19 @@ static void iface_create_proc_worker(struct work_struct *work)
 	new_iface->proc_ptr = proc_entry;
 
 	proc_create_data("tx_bytes", proc_iface_perms, proc_entry,
-			 &read_u64_fops,
+			 &read_u64_proc_ops,
 			 &new_iface->totals_via_dev[IFS_TX].bytes);
 	proc_create_data("rx_bytes", proc_iface_perms, proc_entry,
-			 &read_u64_fops,
+			 &read_u64_proc_ops,
 			 &new_iface->totals_via_dev[IFS_RX].bytes);
 	proc_create_data("tx_packets", proc_iface_perms, proc_entry,
-			 &read_u64_fops,
+			 &read_u64_proc_ops,
 			 &new_iface->totals_via_dev[IFS_TX].packets);
 	proc_create_data("rx_packets", proc_iface_perms, proc_entry,
-			 &read_u64_fops,
+			 &read_u64_proc_ops,
 			 &new_iface->totals_via_dev[IFS_RX].packets);
 	proc_create_data("active", proc_iface_perms, proc_entry,
-			 &read_bool_fops, &new_iface->active);
+			 &read_bool_proc_ops, &new_iface->active);
 
 	IF_DEBUG("qtaguid: iface_stat: create_proc(): done "
 		 "entry=%p dev=%s\n", new_iface, new_iface->ifname);
@@ -1499,11 +1499,11 @@ static int proc_iface_stat_fmt_open(struct inode *inode, struct file *file)
 	return 0;
 }
 
-static const struct file_operations proc_iface_stat_fmt_fops = {
-	.open		= proc_iface_stat_fmt_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= seq_release_private,
+static const struct proc_ops proc_iface_stat_fmt_proc_ops = {
+	.proc_open		= proc_iface_stat_fmt_open,
+	.proc_read		= seq_read,
+	.proc_lseek		= seq_lseek,
+	.proc_release	= seq_release_private,
 };
 
 static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
@@ -1520,7 +1520,7 @@ static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
 	iface_stat_all_procfile = proc_create_data(iface_stat_all_procfilename,
 						   proc_iface_perms,
 						   parent_procdir,
-						   &proc_iface_stat_fmt_fops,
+						   &proc_iface_stat_fmt_proc_ops,
 						   (void *)1 /* fmt1 */);
 	if (!iface_stat_all_procfile) {
 		pr_err("qtaguid: iface_stat: init "
@@ -1532,7 +1532,7 @@ static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
 	iface_stat_fmt_procfile = proc_create_data(iface_stat_fmt_procfilename,
 						   proc_iface_perms,
 						   parent_procdir,
-						   &proc_iface_stat_fmt_fops,
+						   &proc_iface_stat_fmt_proc_ops,
 						   (void *)2 /* fmt2 */);
 	if (!iface_stat_fmt_procfile) {
 		pr_err("qtaguid: iface_stat: init "
@@ -2888,16 +2888,14 @@ static int qtudev_release(struct inode *inode, struct file *file)
 }
 
 /*------------------------------------------*/
-static const struct file_operations qtudev_fops = {
-	.owner = THIS_MODULE,
-	.open = qtudev_open,
-	.release = qtudev_release,
+static const struct proc_ops qtudev_proc_ops = {
+	.proc_open = qtudev_open,
+	.proc_release = qtudev_release,
 };
 
 static struct miscdevice qtu_device = {
 	.minor = MISC_DYNAMIC_MINOR,
 	.name = QTU_DEV_NAME,
-	.fops = &qtudev_fops,
 	/* How sad it doesn't allow for defaults: .mode = S_IRUGO | S_IWUSR */
 };
 
@@ -2914,12 +2912,12 @@ static int proc_qtaguid_ctrl_open(struct inode *inode, struct file *file)
 				sizeof(struct proc_ctrl_print_info));
 }
 
-static const struct file_operations proc_qtaguid_ctrl_fops = {
-	.open		= proc_qtaguid_ctrl_open,
-	.read		= seq_read,
-	.write		= qtaguid_ctrl_proc_write,
-	.llseek		= seq_lseek,
-	.release	= seq_release_private,
+static const struct proc_ops proc_qtaguid_ctrl_proc_ops = {
+	.proc_open		= proc_qtaguid_ctrl_open,
+	.proc_read		= seq_read,
+	.proc_write		= qtaguid_ctrl_proc_write,
+	.proc_lseek		= seq_lseek,
+	.proc_release	= seq_release_private,
 };
 
 static const struct seq_operations proc_qtaguid_stats_seqops = {
@@ -2935,11 +2933,11 @@ static int proc_qtaguid_stats_open(struct inode *inode, struct file *file)
 				sizeof(struct proc_print_info));
 }
 
-static const struct file_operations proc_qtaguid_stats_fops = {
-	.open		= proc_qtaguid_stats_open,
-	.read		= seq_read,
-	.llseek		= seq_lseek,
-	.release	= seq_release_private,
+static const struct proc_ops proc_qtaguid_stats_proc_ops = {
+	.proc_open		= proc_qtaguid_stats_open,
+	.proc_read		= seq_read,
+	.proc_lseek		= seq_lseek,
+	.proc_release	= seq_release_private,
 };
 
 /*------------------------------------------*/
@@ -2955,7 +2953,7 @@ static int __init qtaguid_proc_register(struct proc_dir_entry **res_procdir)
 
 	xt_qtaguid_ctrl_file = proc_create_data("ctrl", proc_ctrl_perms,
 						*res_procdir,
-						&proc_qtaguid_ctrl_fops,
+						&proc_qtaguid_ctrl_proc_ops,
 						NULL);
 	if (!xt_qtaguid_ctrl_file) {
 		pr_err("qtaguid: failed to create xt_qtaguid/ctrl "
@@ -2966,7 +2964,7 @@ static int __init qtaguid_proc_register(struct proc_dir_entry **res_procdir)
 
 	xt_qtaguid_stats_file = proc_create_data("stats", proc_stats_perms,
 						 *res_procdir,
-						 &proc_qtaguid_stats_fops,
+						 &proc_qtaguid_stats_proc_ops,
 						 NULL);
 	if (!xt_qtaguid_stats_file) {
 		pr_err("qtaguid: failed to create xt_qtaguid/stats "
