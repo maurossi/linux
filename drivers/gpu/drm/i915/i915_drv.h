@@ -1959,9 +1959,7 @@ int intel_engine_cmd_parser(struct intel_engine_cs *engine,
 			    struct i915_vma *batch,
 			    u32 batch_offset,
 			    u32 batch_length,
-			    struct i915_vma *shadow,
-			    bool trampoline);
-#define I915_CMD_PARSER_TRAMPOLINE_SIZE 8
+			    struct i915_vma *shadow);
 
 /* intel_device_info.c */
 static inline struct intel_device_info *
