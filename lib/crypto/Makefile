@@ -2,11 +2,15 @@
 
 aflags-thumb2-$(CONFIG_THUMB2_KERNEL)  := -U__thumb2__ -D__thumb2__=1
 
+ifndef PERL_PATH
+  PERL_PATH = /usr/bin/perl
+endif
+
 quiet_cmd_perlasm = PERLASM $@
-      cmd_perlasm = $(PERL) $(<) > $(@)
+      cmd_perlasm = $(PERL_PATH) $(<) > $(@)
 
 quiet_cmd_perlasm_with_args = PERLASM $@
-      cmd_perlasm_with_args = $(PERL) $(<) void $(@)
+      cmd_perlasm_with_args = $(PERL_PATH) $(<) void $(@)
 
 ppc64-perlasm-flavour-y := linux-ppc64
 ppc64-perlasm-flavour-$(CONFIG_PPC64_ELF_ABI_V2) := linux-ppc64-elfv2
