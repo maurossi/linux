@@ -88,7 +88,11 @@ nhpoly1305-avx2-y := nh-avx2-x86_64.o nhpoly1305-avx2-glue.o
 
 obj-$(CONFIG_CRYPTO_CURVE25519_X86) += curve25519-x86_64.o
 
+ifndef PERL_PATH
+  PERL_PATH = /usr/bin/perl
+endif
+
 quiet_cmd_perlasm = PERLASM $@
-      cmd_perlasm = $(PERL) $< > $@
+      cmd_perlasm = $(PERL_PATH) $< > $@
 $(obj)/%.S: $(src)/%.pl FORCE
 	$(call if_changed,perlasm)
