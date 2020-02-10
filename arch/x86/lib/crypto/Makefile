@@ -13,8 +13,12 @@ targets += poly1305-x86_64-cryptogams.S
 obj-$(CONFIG_CRYPTO_SHA256_X86_64) += sha256-x86_64.o
 sha256-x86_64-y := sha256.o sha256-ssse3-asm.o sha256-avx-asm.o sha256-avx2-asm.o sha256-ni-asm.o
 
+ifndef PERL_PATH
+  PERL_PATH = /usr/bin/perl
+endif
+
 quiet_cmd_perlasm = PERLASM $@
-      cmd_perlasm = $(PERL) $< > $@
+      cmd_perlasm = $(PERL_PATH) $< > $@
 
 $(obj)/%.S: $(src)/%.pl FORCE
 	$(call if_changed,perlasm)
