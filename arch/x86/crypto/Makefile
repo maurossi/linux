@@ -126,7 +126,11 @@ endif
 sha512-ssse3-y := sha512-ssse3-asm.o sha512-avx-asm.o sha512-avx2-asm.o sha512_ssse3_glue.o
 crct10dif-pclmul-y := crct10dif-pcl-asm_64.o crct10dif-pclmul_glue.o
 
+ifndef PERL_PATH
+  PERL_PATH = /usr/bin/perl
+endif
+
 quiet_cmd_perlasm = PERLASM $@
-      cmd_perlasm = $(PERL) $< > $@
+      cmd_perlasm = $(PERL_PATH) $< > $@
 $(obj)/%.S: $(src)/%.pl FORCE
 	$(call if_changed,perlasm)
