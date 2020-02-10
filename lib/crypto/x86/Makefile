@@ -10,8 +10,12 @@ obj-$(CONFIG_CRYPTO_POLY1305_X86_64) += poly1305-x86_64.o
 poly1305-x86_64-y := poly1305-x86_64-cryptogams.o poly1305_glue.o
 targets += poly1305-x86_64-cryptogams.S
 
+ifndef PERL_PATH
+  PERL_PATH = /usr/bin/perl
+endif
+
 quiet_cmd_perlasm = PERLASM $@
-      cmd_perlasm = $(PERL) $< > $@
+      cmd_perlasm = $(PERL_PATH) $< > $@
 
 $(obj)/%.S: $(src)/%.pl FORCE
 	$(call if_changed,perlasm)
