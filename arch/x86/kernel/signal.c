@@ -80,9 +80,7 @@ static void force_valid_ss(struct pt_regs *regs)
 # define CONTEXT_COPY_SIZE	sizeof(struct sigcontext)
 #endif
 
-static bool restore_sigcontext(struct pt_regs *regs,
-			       struct sigcontext __user *usc,
-			       unsigned long uc_flags)
+int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *usc)
 {
 	struct sigcontext sc;
 
@@ -120,22 +118,20 @@ static bool restore_sigcontext(struct pt_regs *regs,
 	regs->r15 = sc.r15;
 #endif /* CONFIG_X86_64 */
 
+#ifdef CONFIG_X86_32
 	/* Get CS/SS and force CPL3 */
 	regs->cs = sc.cs | 0x03;
 	regs->ss = sc.ss | 0x03;
+#else /* !CONFIG_X86_32 */
+	/* Kernel saves and restores only the CS segment register on signals,
+	 * which is the bare minimum needed to allow mixed 32/64-bit code.
+	 * App's signal handler can save/restore other segments if needed. */
+	regs->cs = sc.cs | 0x03;
+#endif /* CONFIG_X86_32 */
 
 	regs->flags = (regs->flags & ~FIX_EFLAGS) | (sc.flags & FIX_EFLAGS);
 	/* disable syscall checks */
 	regs->orig_ax = -1;
-
-#ifdef CONFIG_X86_64
-	/*
-	 * Fix up SS if needed for the benefit of old DOSEMU and
-	 * CRIU.
-	 */
-	if (unlikely(!(uc_flags & UC_STRICT_RESTORE_SS) && user_64bit_mode(regs)))
-		force_valid_ss(regs);
-#endif
 
 	return fpu__restore_sig((void __user *)sc.fpstate,
 			       IS_ENABLED(CONFIG_X86_32));
@@ -185,7 +181,6 @@ __unsafe_setup_sigcontext(struct sigcontext __user *sc, void __user *fpstate,
 	unsafe_put_user(regs->cs, &sc->cs, Efault);
 	unsafe_put_user(0, &sc->gs, Efault);
 	unsafe_put_user(0, &sc->fs, Efault);
-	unsafe_put_user(regs->ss, &sc->ss, Efault);
 #endif /* CONFIG_X86_32 */
 
 	unsafe_put_user(fpstate, (unsigned long __user *)&sc->fpstate, Efault);
@@ -441,40 +436,26 @@ Efault:
 	return -EFAULT;
 }
 #else /* !CONFIG_X86_32 */
-static unsigned long frame_uc_flags(struct pt_regs *regs)
-{
-	unsigned long flags;
-
-	if (boot_cpu_has(X86_FEATURE_XSAVE))
-		flags = UC_FP_XSTATE | UC_SIGCONTEXT_SS;
-	else
-		flags = UC_SIGCONTEXT_SS;
-
-	if (likely(user_64bit_mode(regs)))
-		flags |= UC_STRICT_RESTORE_SS;
-
-	return flags;
-}
-
 static int __setup_rt_frame(int sig, struct ksignal *ksig,
 			    sigset_t *set, struct pt_regs *regs)
 {
 	struct rt_sigframe __user *frame;
 	void __user *fp = NULL;
-	unsigned long uc_flags;
 
 	/* x86-64 should always use SA_RESTORER. */
 	if (!(ksig->ka.sa.sa_flags & SA_RESTORER))
 		return -EFAULT;
 
 	frame = get_sigframe(&ksig->ka, regs, sizeof(struct rt_sigframe), &fp);
-	uc_flags = frame_uc_flags(regs);
 
 	if (!user_access_begin(frame, sizeof(*frame)))
 		return -EFAULT;
 
 	/* Create the ucontext.  */
-	unsafe_put_user(uc_flags, &frame->uc.uc_flags, Efault);
+	if (static_cpu_has(X86_FEATURE_XSAVE))
+		unsafe_put_user(UC_FP_XSTATE, &frame->uc.uc_flags, Efault);
+	else
+		unsafe_put_user(0, &frame->uc.uc_flags, Efault);
 	unsafe_put_user(0, &frame->uc.uc_link, Efault);
 	unsafe_save_altstack(&frame->uc.uc_stack, regs->sp, Efault);
 
@@ -564,7 +545,6 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
 {
 #ifdef CONFIG_X86_X32_ABI
 	struct rt_sigframe_x32 __user *frame;
-	unsigned long uc_flags;
 	void __user *restorer;
 	void __user *fp = NULL;
 
@@ -573,13 +553,14 @@ static int x32_setup_rt_frame(struct ksignal *ksig,
 
 	frame = get_sigframe(&ksig->ka, regs, sizeof(*frame), &fp);
 
-	uc_flags = frame_uc_flags(regs);
-
 	if (!user_access_begin(frame, sizeof(*frame)))
 		return -EFAULT;
 
 	/* Create the ucontext.  */
-	unsafe_put_user(uc_flags, &frame->uc.uc_flags, Efault);
+	if (static_cpu_has(X86_FEATURE_XSAVE))
+		unsafe_put_user(UC_FP_XSTATE, &frame->uc.uc_flags, Efault);
+	else
+		unsafe_put_user(0, &frame->uc.uc_flags, Efault);
 	unsafe_put_user(0, &frame->uc.uc_link, Efault);
 	unsafe_compat_save_altstack(&frame->uc.uc_stack, regs->sp, Efault);
 	unsafe_put_user(0, &frame->uc.uc__pad0, Efault);
@@ -638,11 +619,7 @@ SYSCALL_DEFINE0(sigreturn)
 
 	set_current_blocked(&set);
 
-	/*
-	 * x86_32 has no uc_flags bits relevant to restore_sigcontext.
-	 * Save a few cycles by skipping the __get_user.
-	 */
-	if (!restore_sigcontext(regs, &frame->sc, 0))
+	if (!restore_sigcontext(regs, &frame->sc))
 		goto badframe;
 	return regs->ax;
 
@@ -658,19 +635,16 @@ SYSCALL_DEFINE0(rt_sigreturn)
 	struct pt_regs *regs = current_pt_regs();
 	struct rt_sigframe __user *frame;
 	sigset_t set;
-	unsigned long uc_flags;
 
 	frame = (struct rt_sigframe __user *)(regs->sp - sizeof(long));
 	if (!access_ok(frame, sizeof(*frame)))
 		goto badframe;
 	if (__get_user(*(__u64 *)&set, (__u64 __user *)&frame->uc.uc_sigmask))
 		goto badframe;
-	if (__get_user(uc_flags, &frame->uc.uc_flags))
-		goto badframe;
 
 	set_current_blocked(&set);
 
-	if (!restore_sigcontext(regs, &frame->uc.uc_mcontext, uc_flags))
+	if (!restore_sigcontext(regs, &frame->uc.uc_mcontext))
 		goto badframe;
 
 	if (restore_altstack(&frame->uc.uc_stack))
@@ -974,7 +948,6 @@ COMPAT_SYSCALL_DEFINE0(x32_rt_sigreturn)
 	struct pt_regs *regs = current_pt_regs();
 	struct rt_sigframe_x32 __user *frame;
 	sigset_t set;
-	unsigned long uc_flags;
 
 	frame = (struct rt_sigframe_x32 __user *)(regs->sp - 8);
 
@@ -982,12 +955,10 @@ COMPAT_SYSCALL_DEFINE0(x32_rt_sigreturn)
 		goto badframe;
 	if (__get_user(set.sig[0], (__u64 __user *)&frame->uc.uc_sigmask))
 		goto badframe;
-	if (__get_user(uc_flags, &frame->uc.uc_flags))
-		goto badframe;
 
 	set_current_blocked(&set);
 
-	if (!restore_sigcontext(regs, &frame->uc.uc_mcontext, uc_flags))
+	if (!restore_sigcontext(regs, &frame->uc.uc_mcontext))
 		goto badframe;
 
 	if (compat_restore_altstack(&frame->uc.uc_stack))

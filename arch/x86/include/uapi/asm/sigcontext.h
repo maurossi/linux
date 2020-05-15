@@ -257,7 +257,7 @@ struct sigcontext_64 {
 	__u16				cs;
 	__u16				gs;
 	__u16				fs;
-	__u16				ss;
+	__u16				__pad0;
 	__u64				err;
 	__u64				trapno;
 	__u64				oldmask;
@@ -369,10 +369,7 @@ struct sigcontext {
 	 */
 	__u16				gs;
 	__u16				fs;
-	union {
-		__u16			ss;	/* If UC_SIGCONTEXT_SS */
-		__u16			__pad0;	/* Alias name for old (!UC_SIGCONTEXT_SS) user-space */
-	};
+	__u16				__pad0;
 	__u64				err;
 	__u64				trapno;
 	__u64				oldmask;

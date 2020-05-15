@@ -14,5 +14,6 @@
 			 X86_EFLAGS_CF | X86_EFLAGS_RF)
 
 void signal_fault(struct pt_regs *regs, void __user *frame, char *where);
+int restore_sigcontext(struct pt_regs *regs, struct sigcontext __user *usc);
 
 #endif /* _ASM_X86_SIGHANDLING_H */
