@@ -7,6 +7,8 @@
 
 #include "pelt.h"
 
+#include <trace/hooks/sched.h>
+
 int sched_rr_timeslice = RR_TIMESLICE;
 int sysctl_sched_rr_timeslice = (MSEC_PER_SEC / HZ) * RR_TIMESLICE;
 /* More than 4 hours if BW_SHIFT equals 20. */
@@ -972,6 +974,13 @@ static int sched_rt_runtime_exceeded(struct rt_rq *rt_rq)
 		if (likely(rt_b->rt_runtime)) {
 			rt_rq->rt_throttled = 1;
 			printk_deferred_once("sched: RT throttling activated\n");
+
+			trace_android_vh_dump_throttled_rt_tasks(
+				raw_smp_processor_id(),
+				rq_clock(rq_of_rt_rq(rt_rq)),
+				sched_rt_period(rt_rq),
+				runtime,
+				hrtimer_get_expires_ns(&rt_b->rt_period_timer));
 		} else {
 			/*
 			 * In case we did anyway, make it go away,
@@ -1435,6 +1444,12 @@ select_task_rq_rt(struct task_struct *p, int cpu, int flags)
 	struct task_struct *curr;
 	struct rq *rq;
 	bool test;
+	int target_cpu = -1;
+
+	trace_android_rvh_select_task_rq_rt(p, cpu, flags & 0xF,
+					flags, &target_cpu);
+	if (target_cpu >= 0)
+		return target_cpu;
 
 	/* For anything but wake ups, just return the task_cpu */
 	if (!(flags & (WF_TTWU | WF_FORK)))
@@ -1703,7 +1718,7 @@ static int find_lowest_rq(struct task_struct *task)
 	struct sched_domain *sd;
 	struct cpumask *lowest_mask = this_cpu_cpumask_var_ptr(local_cpu_mask);
 	int this_cpu = smp_processor_id();
-	int cpu      = task_cpu(task);
+	int cpu      = -1;
 	int ret;
 
 	/* Make sure the mask is initialized first */
@@ -1728,8 +1743,14 @@ static int find_lowest_rq(struct task_struct *task)
 				  task, lowest_mask);
 	}
 
+	trace_android_rvh_find_lowest_rq(task, lowest_mask, ret, &cpu);
+	if (cpu >= 0)
+		return cpu;
+
 	if (!ret)
 		return -1; /* No targets found */
+
+	cpu = task_cpu(task);
 
 	/*
 	 * At this point we have built a mask of CPUs representing the
