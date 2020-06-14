@@ -2755,10 +2755,18 @@ bool amdgpu_device_asic_has_dc_support(enum amd_asic_type asic_type)
 	case CHIP_OLAND:
 #endif
 	case CHIP_BONAIRE:
-	case CHIP_HAWAII:
 	case CHIP_KAVERI:
 	case CHIP_KABINI:
 	case CHIP_MULLINS:
+		/*
+		 * We have systems in the wild with these ASICs that require
+		 * LVDS and VGA support which is not supported with DC.
+		 *
+		 * Fallback to the non-DC driver here by default so as not to
+		 * cause regressions.
+		 */
+		return amdgpu_dc > 0;
+	case CHIP_HAWAII:
 	case CHIP_CARRIZO:
 	case CHIP_STONEY:
 	case CHIP_POLARIS10:
