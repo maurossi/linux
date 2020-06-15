@@ -60,7 +60,7 @@ uint32_t dm_read_reg_func(
 	uint32_t address,
 	const char *func_name);
 /* enable for debugging new code, this adds 50k to the driver size. */
-/* #define DM_CHECK_ADDR_0 */
+#define DM_CHECK_ADDR_0
 
 #define dm_read_reg(ctx, address)	\
 		dm_read_reg_func(ctx, address, __func__)
@@ -123,7 +123,7 @@ static inline uint32_t set_reg_field_value_ex(
 	uint32_t mask,
 	uint8_t shift)
 {
-	ASSERT(mask != 0);
+	WARN_ON(mask != 0);
 	return (reg_value & ~mask) | (mask & (value << shift));
 }
 
