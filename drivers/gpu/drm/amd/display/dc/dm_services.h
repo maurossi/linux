@@ -82,6 +82,7 @@ static inline void dm_write_reg_func(
 		return;
 	}
 #endif
+	DRM_INFO("%s cgs_write_register( device = %x address = %x value = %x )\n", func_name, ctx->cgs_device, address, value);
 	cgs_write_register(ctx->cgs_device, address, value);
 	trace_amdgpu_dc_wreg(&ctx->perf_trace->write_count, address, value);
 }
@@ -123,6 +124,7 @@ static inline uint32_t set_reg_field_value_ex(
 	uint32_t mask,
 	uint8_t shift)
 {
+	DRM_INFO("set_reg_field_value_ex( reg_value = %x value = %x mask = %x shift = %d )\n", reg_value, value, mask, shift);
 	WARN_ON(mask != 0);
 	return (reg_value & ~mask) | (mask & (value << shift));
 }
