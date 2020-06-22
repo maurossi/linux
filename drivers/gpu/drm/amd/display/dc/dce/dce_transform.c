@@ -882,6 +882,59 @@ static void dce_transform_set_pixel_storage_depth(
 	}
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_transform_set_pixel_storage_depth(
+	struct transform *xfm,
+	enum lb_pixel_depth depth,
+	const struct bit_depth_reduction_params *bit_depth_params)
+{
+	struct dce_transform *xfm_dce = TO_DCE_TRANSFORM(xfm);
+	int pixel_depth, expan_mode;
+	enum dc_color_depth color_depth;
+
+	switch (depth) {
+	case LB_PIXEL_DEPTH_18BPP:
+		color_depth = COLOR_DEPTH_666;
+		pixel_depth = 2;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_24BPP:
+		color_depth = COLOR_DEPTH_888;
+		pixel_depth = 1;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_30BPP:
+		color_depth = COLOR_DEPTH_101010;
+		pixel_depth = 0;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_36BPP:
+		color_depth = COLOR_DEPTH_121212;
+		pixel_depth = 3;
+		expan_mode  = 0;
+		break;
+	default:
+		color_depth = COLOR_DEPTH_101010;
+		pixel_depth = 0;
+		expan_mode  = 1;
+		BREAK_TO_DEBUGGER();
+		break;
+	}
+
+	set_denormalization(xfm_dce, color_depth);
+	program_bit_depth_reduction(xfm_dce, color_depth, bit_depth_params);
+
+	/* DATA_FORMAT in DCE6 does not have PIXEL_DEPTH and PIXEL_EXPAN_MODE masks */
+
+	if (!(xfm_dce->lb_pixel_depth_supported & depth)) {
+		/*we should use unsupported capabilities
+		 *  unless it is required by w/a*/
+		DC_LOG_WARNING("%s: Capability not supported",
+			__func__);
+	}
+}
+#endif
+
 static void program_gamut_remap(
 	struct dce_transform *xfm_dce,
 	const uint16_t *reg_val)
@@ -1430,7 +1483,7 @@ static const struct transform_funcs dce60_transform_funcs = {
 	.opp_power_on_regamma_lut = dce110_opp_power_on_regamma_lut,
 	.opp_program_regamma_pwl = dce110_opp_program_regamma_pwl,
 	.opp_set_regamma_mode = dce110_opp_set_regamma_mode,
-	.transform_set_pixel_storage_depth = dce_transform_set_pixel_storage_depth,
+	.transform_set_pixel_storage_depth = dce60_transform_set_pixel_storage_depth,
 	.transform_get_optimal_number_of_taps = dce_transform_get_optimal_number_of_taps
 };
 #endif
