@@ -174,22 +174,6 @@ static void program_urgency_watermark(
 		URGENCY_HIGH_WATERMARK, urgency_high_wm);
 }
 
-#if defined(CONFIG_DRM_AMD_DC_SI)
-static void dce60_program_urgency_watermark(
-	struct dce_mem_input *dce_mi,
-	uint32_t wm_select,
-	uint32_t urgency_low_wm,
-	uint32_t urgency_high_wm)
-{
-	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
-		LATENCY_WATERMARK_MASK, wm_select);
-
-	REG_SET_2(DPG_PIPE_URGENCY_CONTROL, 0,
-		URGENCY_LOW_WATERMARK, urgency_low_wm,
-		URGENCY_HIGH_WATERMARK, urgency_high_wm);
-}
-#endif
-
 static void dce120_program_urgency_watermark(
 	struct dce_mem_input *dce_mi,
 	uint32_t wm_select,
@@ -345,9 +329,9 @@ static void dce60_mi_program_display_marks(
 	struct dce_mem_input *dce_mi = TO_DCE_MEM_INPUT(mi);
 	uint32_t stutter_en = mi->ctx->dc->debug.disable_stutter ? 0 : 1;
 
-	dce60_program_urgency_watermark(dce_mi, 2, /* set a */
+	program_urgency_watermark(dce_mi, 2, /* set a */
 			urgent.a_mark, total_dest_line_time_ns);
-	dce60_program_urgency_watermark(dce_mi, 1, /* set d */
+	program_urgency_watermark(dce_mi, 1, /* set d */
 			urgent.d_mark, total_dest_line_time_ns);
 
 	REG_UPDATE_2(DPG_PIPE_STUTTER_CONTROL,
