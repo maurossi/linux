@@ -414,6 +414,57 @@ void dce110_opp_set_clamping(
 	}
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+/**
+ *	Set Clamping for DCE6 parts
+ *	1) Set clamping format based on bpc - 0 for 6bpc (No clamping)
+ *		1 for 8 bpc
+ *		2 for 10 bpc
+ *		3 for 12 bpc
+ *		7 for programable
+ *	2) Enable clamp if Limited range requested
+ */
+void dce60_opp_set_clamping(
+	struct dce110_opp *opp110,
+	const struct clamping_and_pixel_encoding_params *params)
+{
+	REG_SET_2(FMT_CLAMP_CNTL, 0,
+		FMT_CLAMP_DATA_EN, 0,
+		FMT_CLAMP_COLOR_FORMAT, 0);
+
+	switch (params->clamping_level) {
+	case CLAMPING_FULL_RANGE:
+		break;
+	case CLAMPING_LIMITED_RANGE_8BPC:
+		REG_SET_2(FMT_CLAMP_CNTL, 0,
+			FMT_CLAMP_DATA_EN, 1,
+			FMT_CLAMP_COLOR_FORMAT, 1);
+		break;
+	case CLAMPING_LIMITED_RANGE_10BPC:
+		REG_SET_2(FMT_CLAMP_CNTL, 0,
+			FMT_CLAMP_DATA_EN, 1,
+			FMT_CLAMP_COLOR_FORMAT, 2);
+		break;
+	case CLAMPING_LIMITED_RANGE_12BPC:
+		REG_SET_2(FMT_CLAMP_CNTL, 0,
+			FMT_CLAMP_DATA_EN, 1,
+			FMT_CLAMP_COLOR_FORMAT, 3);
+		break;
+	case CLAMPING_LIMITED_RANGE_PROGRAMMABLE:
+		/*Set clamp control*/
+		REG_SET_2(FMT_CLAMP_CNTL, 0,
+			FMT_CLAMP_DATA_EN, 1,
+			FMT_CLAMP_COLOR_FORMAT, 7);
+
+		/* DCE6 does have FMT_CLAMP_COMPONENT_{R,G,B} registers */
+
+		break;
+	default:
+		break;
+	}
+}
+#endif
+
 /**
  *	set_pixel_encoding
  *
@@ -523,7 +574,7 @@ void dce60_opp_program_clamping_and_pixel_encoding(
 {
 	struct dce110_opp *opp110 = TO_DCE110_OPP(opp);
 
-	dce110_opp_set_clamping(opp110, params);
+	dce60_opp_set_clamping(opp110, params);
 	dce60_set_pixel_encoding(opp110, params);
 }
 #endif

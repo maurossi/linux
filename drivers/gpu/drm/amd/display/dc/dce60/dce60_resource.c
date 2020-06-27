@@ -793,7 +793,7 @@ static struct input_pixel_processor *dce60_ipp_create(
 		return NULL;
 	}
 
-	dce_ipp_construct(ipp, ctx, inst,
+	dce60_ipp_construct(ipp, ctx, inst,
 			&ipp_regs[inst], &ipp_shift, &ipp_mask);
 	return &ipp->base;
 }
