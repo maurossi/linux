@@ -146,6 +146,40 @@ static bool setup_scaling_configuration(
 	return true;
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static bool dce60_setup_scaling_configuration(
+	struct dce_transform *xfm_dce,
+	const struct scaler_data *data)
+{
+	REG_SET(SCL_BYPASS_CONTROL, 0, SCL_BYPASS_MODE, 0);
+
+	if (data->taps.h_taps + data->taps.v_taps <= 2) {
+		/* Set bypass */
+		if (xfm_dce->xfm_mask->SCL_PSCL_EN != 0)
+			REG_UPDATE_2(SCL_MODE, SCL_MODE, 0, SCL_PSCL_EN, 0);
+		else
+			REG_UPDATE(SCL_MODE, SCL_MODE, 0);
+		return false;
+	}
+
+	REG_SET_2(SCL_TAP_CONTROL, 0,
+			SCL_H_NUM_OF_TAPS, data->taps.h_taps - 1,
+			SCL_V_NUM_OF_TAPS, data->taps.v_taps - 1);
+
+	if (data->format <= PIXEL_FORMAT_GRPH_END)
+		REG_UPDATE(SCL_MODE, SCL_MODE, 1);
+	else
+		REG_UPDATE(SCL_MODE, SCL_MODE, 2);
+
+	if (xfm_dce->xfm_mask->SCL_PSCL_EN != 0)
+		REG_UPDATE(SCL_MODE, SCL_PSCL_EN, 1);
+
+	/* DCE6 cannot replace out of bound pixels with edge */
+
+	return true;
+}
+#endif
+
 static void program_overscan(
 		struct dce_transform *xfm_dce,
 		const struct scaler_data *data)
@@ -414,7 +448,7 @@ static void dce60_transform_set_scaler(
 		DC_LB_MEMORY_CONFIG, 0);
 
 	REG_SET(DC_LB_MEM_SIZE, 0,
-		DC_LB_MEMORY_SIZE, xfm_dce->lb_memory_size);
+		DC_LB_MEM_SIZE, xfm_dce->lb_memory_size);
 
 	/* Clear SCL_F_SHARP_CONTROL value to 0 */
 	REG_WRITE(SCL_F_SHARP_CONTROL, 0);
@@ -423,7 +457,7 @@ static void dce60_transform_set_scaler(
 	program_overscan(xfm_dce, data);
 
 	/* 2. Program taps and configuration */
-	is_scaling_required = setup_scaling_configuration(xfm_dce, data);
+	is_scaling_required = dce60_setup_scaling_configuration(xfm_dce, data);
 
 	if (is_scaling_required) {
 		/* 3. Calculate and program ratio, filter initialization */
@@ -476,11 +510,9 @@ static void dce60_transform_set_scaler(
 	/* 6. Program the viewport */
 	program_viewport(xfm_dce, &data->viewport);
 
-	/* 7. Set bit to flip to new coefficient memory */
-	if (filter_updated)
-		REG_UPDATE(SCL_UPDATE, SCL_COEF_UPDATE_COMPLETE, 1);
+	/* DCE6 does not have bit to flip to new coefficient memory */
 
-/*	REG_UPDATE(LB_DATA_FORMAT, ALPHA_EN, data->lb_params.alpha_en); */
+	/* DCE6 DATA_FORMAT register does not support ALPHA_EN */
 }
 #endif
 
@@ -881,6 +913,59 @@ static void dce_transform_set_pixel_storage_depth(
 			__func__);
 	}
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_transform_set_pixel_storage_depth(
+	struct transform *xfm,
+	enum lb_pixel_depth depth,
+	const struct bit_depth_reduction_params *bit_depth_params)
+{
+	struct dce_transform *xfm_dce = TO_DCE_TRANSFORM(xfm);
+	int pixel_depth, expan_mode;
+	enum dc_color_depth color_depth;
+
+	switch (depth) {
+	case LB_PIXEL_DEPTH_18BPP:
+		color_depth = COLOR_DEPTH_666;
+		pixel_depth = 2;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_24BPP:
+		color_depth = COLOR_DEPTH_888;
+		pixel_depth = 1;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_30BPP:
+		color_depth = COLOR_DEPTH_101010;
+		pixel_depth = 0;
+		expan_mode  = 1;
+		break;
+	case LB_PIXEL_DEPTH_36BPP:
+		color_depth = COLOR_DEPTH_121212;
+		pixel_depth = 3;
+		expan_mode  = 0;
+		break;
+	default:
+		color_depth = COLOR_DEPTH_101010;
+		pixel_depth = 0;
+		expan_mode  = 1;
+		BREAK_TO_DEBUGGER();
+		break;
+	}
+
+	set_denormalization(xfm_dce, color_depth);
+	program_bit_depth_reduction(xfm_dce, color_depth, bit_depth_params);
+
+	/* DATA_FORMAT in DCE6 does not have PIXEL_DEPTH and PIXEL_EXPAN_MODE masks */
+
+	if (!(xfm_dce->lb_pixel_depth_supported & depth)) {
+		/*we should use unsupported capabilities
+		 *  unless it is required by w/a*/
+		DC_LOG_WARNING("%s: Capability not supported",
+			__func__);
+	}
+}
+#endif
 
 static void program_gamut_remap(
 	struct dce_transform *xfm_dce,
@@ -1430,7 +1515,7 @@ static const struct transform_funcs dce60_transform_funcs = {
 	.opp_power_on_regamma_lut = dce110_opp_power_on_regamma_lut,
 	.opp_program_regamma_pwl = dce110_opp_program_regamma_pwl,
 	.opp_set_regamma_mode = dce110_opp_set_regamma_mode,
-	.transform_set_pixel_storage_depth = dce_transform_set_pixel_storage_depth,
+	.transform_set_pixel_storage_depth = dce60_transform_set_pixel_storage_depth,
 	.transform_get_optimal_number_of_taps = dce_transform_get_optimal_number_of_taps
 };
 #endif
