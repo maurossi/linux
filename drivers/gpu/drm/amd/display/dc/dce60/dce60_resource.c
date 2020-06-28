@@ -727,7 +727,7 @@ struct link_encoder *dce60_link_encoder_create(
 	link_regs_id =
 		map_transmitter_id_to_phy_instance(enc_init_data->transmitter);
 
-	dce110_link_encoder_construct(enc110,
+	dce60_link_encoder_construct(enc110,
 				      enc_init_data,
 				      &link_enc_feature,
 				      &link_enc_regs[link_regs_id],
