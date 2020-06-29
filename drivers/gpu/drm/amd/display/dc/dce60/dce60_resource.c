@@ -521,7 +521,7 @@ static struct output_pixel_processor *dce60_opp_create(
 	if (!opp)
 		return NULL;
 
-	dce110_opp_construct(opp,
+	dce60_opp_construct(opp,
 			     ctx, inst, &opp_regs[inst], &opp_shift, &opp_mask);
 	return &opp->base;
 }
