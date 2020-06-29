@@ -197,6 +197,16 @@ void dce110_link_encoder_construct(
 	const struct dce110_link_enc_aux_registers *aux_regs,
 	const struct dce110_link_enc_hpd_registers *hpd_regs);
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_link_encoder_construct(
+	struct dce110_link_encoder *enc110,
+	const struct encoder_init_data *init_data,
+	const struct encoder_feature_support *enc_features,
+	const struct dce110_link_enc_registers *link_regs,
+	const struct dce110_link_enc_aux_registers *aux_regs,
+	const struct dce110_link_enc_hpd_registers *hpd_regs);
+#endif
+
 bool dce110_link_encoder_validate_dvi_output(
 	const struct dce110_link_encoder *enc110,
 	enum signal_type connector_signal,
