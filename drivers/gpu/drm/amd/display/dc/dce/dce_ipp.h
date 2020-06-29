@@ -273,6 +273,15 @@ void dce_ipp_construct(struct dce_ipp *ipp_dce,
 	const struct dce_ipp_shift *ipp_shift,
 	const struct dce_ipp_mask *ipp_mask);
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_ipp_construct(struct dce_ipp *ipp_dce,
+	struct dc_context *ctx,
+	int inst,
+	const struct dce_ipp_registers *regs,
+	const struct dce_ipp_shift *ipp_shift,
+	const struct dce_ipp_mask *ipp_mask);
+#endif
+
 void dce_ipp_destroy(struct input_pixel_processor **ipp);
 
 #endif /* _DCE_IPP_H_ */
