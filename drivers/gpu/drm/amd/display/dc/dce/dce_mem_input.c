@@ -488,6 +488,37 @@ static void program_size_and_rotation(
 			GRPH_ROTATION_ANGLE, rotation_angles[rotation]);
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_program_size(
+	struct dce_mem_input *dce_mi,
+	enum dc_rotation_angle rotation, /* not used in DCE6 */
+	const struct plane_size *plane_size)
+{
+	const struct rect *in_rect = &plane_size->surface_size;
+	struct rect hw_rect = plane_size->surface_size;
+	/* DCE6 has no HW rotation, skip rotation_angles declaration */
+
+	/* DCE6 has not HW rotation, skip ROTATION_ANGLE_* processing */
+
+	REG_SET(GRPH_X_START, 0,
+			GRPH_X_START, hw_rect.x);
+
+	REG_SET(GRPH_Y_START, 0,
+			GRPH_Y_START, hw_rect.y);
+
+	REG_SET(GRPH_X_END, 0,
+			GRPH_X_END, hw_rect.width);
+
+	REG_SET(GRPH_Y_END, 0,
+			GRPH_Y_END, hw_rect.height);
+
+	REG_SET(GRPH_PITCH, 0,
+			GRPH_PITCH, plane_size->surface_pitch);
+
+	/* DCE6 has not HW_ROTATION register, skip setting rotation_angles */
+}
+#endif
+
 static void program_grph_pixel_format(
 	struct dce_mem_input *dce_mi,
 	enum surface_pixel_format format)
@@ -579,6 +610,28 @@ static void dce_mi_program_surface_config(
 		format < SURFACE_PIXEL_FORMAT_VIDEO_BEGIN)
 		program_grph_pixel_format(dce_mi, format);
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_mi_program_surface_config(
+	struct mem_input *mi,
+	enum surface_pixel_format format,
+	union dc_tiling_info *tiling_info,
+	struct plane_size *plane_size,
+	enum dc_rotation_angle rotation, /* not used in DCE6 */
+	struct dc_plane_dcc_param *dcc,
+	bool horizontal_mirror)
+{
+	struct dce_mem_input *dce_mi = TO_DCE_MEM_INPUT(mi);
+	REG_UPDATE(GRPH_ENABLE, GRPH_ENABLE, 1);
+
+	program_tiling(dce_mi, tiling_info);
+	dce60_program_size(dce_mi, rotation, plane_size);
+
+	if (format >= SURFACE_PIXEL_FORMAT_GRPH_BEGIN &&
+		format < SURFACE_PIXEL_FORMAT_VIDEO_BEGIN)
+		program_grph_pixel_format(dce_mi, format);
+}
+#endif
 
 static uint32_t get_dmif_switch_time_us(
 	uint32_t h_total,
@@ -809,7 +862,7 @@ static const struct mem_input_funcs dce60_mi_funcs = {
 			dce_mi_program_surface_flip_and_addr,
 	.mem_input_program_pte_vm = dce_mi_program_pte_vm,
 	.mem_input_program_surface_config =
-			dce_mi_program_surface_config,
+			dce60_mi_program_surface_config,
 	.mem_input_is_flip_pending = dce_mi_is_flip_pending
 };
 #endif

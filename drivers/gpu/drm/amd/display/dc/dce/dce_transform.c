@@ -155,10 +155,9 @@ static bool dce60_setup_scaling_configuration(
 
 	if (data->taps.h_taps + data->taps.v_taps <= 2) {
 		/* Set bypass */
-		if (xfm_dce->xfm_mask->SCL_PSCL_EN != 0)
-			REG_UPDATE_2(SCL_MODE, SCL_MODE, 0, SCL_PSCL_EN, 0);
-		else
-			REG_UPDATE(SCL_MODE, SCL_MODE, 0);
+
+		/* DCE6 has no SCL_MODE register, skip scale mode programming */
+
 		return false;
 	}
 
@@ -166,15 +165,9 @@ static bool dce60_setup_scaling_configuration(
 			SCL_H_NUM_OF_TAPS, data->taps.h_taps - 1,
 			SCL_V_NUM_OF_TAPS, data->taps.v_taps - 1);
 
-	if (data->format <= PIXEL_FORMAT_GRPH_END)
-		REG_UPDATE(SCL_MODE, SCL_MODE, 1);
-	else
-		REG_UPDATE(SCL_MODE, SCL_MODE, 2);
+	/* DCE6 has no SCL_MODE register, skip scale mode programming */
 
-	if (xfm_dce->xfm_mask->SCL_PSCL_EN != 0)
-		REG_UPDATE(SCL_MODE, SCL_PSCL_EN, 1);
-
-	/* DCE6 cannot replace out of bound pixels with edge */
+	/* DCE6 has no SCL_BOUNDARY_MODE bit, skip replace out of bound pixels */
 
 	return true;
 }
@@ -781,6 +774,67 @@ static void program_bit_depth_reduction(
 		   bit_depth_params->flags.HIGHPASS_RANDOM);
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+/*****************************************************************************
+ * dce60_transform_bit_depth_reduction program
+ *
+ * @brief
+ *     Programs the DCP bit depth reduction registers (Clamp, Round/Truncate,
+ *      Dither) for dce
+ *
+ * @param depth : bit depth to set the clamp to (should match denorm)
+ *
+ ******************************************************************************/
+static void dce60_program_bit_depth_reduction(
+	struct dce_transform *xfm_dce,
+	enum dc_color_depth depth,
+	const struct bit_depth_reduction_params *bit_depth_params)
+{
+	enum dcp_out_trunc_round_depth trunc_round_depth;
+	enum dcp_out_trunc_round_mode trunc_mode;
+	bool spatial_dither_enable;
+
+	ASSERT(depth < COLOR_DEPTH_121212); /* Invalid clamp bit depth */
+
+	spatial_dither_enable = bit_depth_params->flags.SPATIAL_DITHER_ENABLED;
+	/* Default to 12 bit truncation without rounding */
+	trunc_round_depth = DCP_OUT_TRUNC_ROUND_DEPTH_12BIT;
+	trunc_mode = DCP_OUT_TRUNC_ROUND_MODE_TRUNCATE;
+
+	if (bit_depth_params->flags.TRUNCATE_ENABLED) {
+		/* Don't enable dithering if truncation is enabled */
+		spatial_dither_enable = false;
+		trunc_mode = bit_depth_params->flags.TRUNCATE_MODE ?
+			     DCP_OUT_TRUNC_ROUND_MODE_ROUND :
+			     DCP_OUT_TRUNC_ROUND_MODE_TRUNCATE;
+
+		if (bit_depth_params->flags.TRUNCATE_DEPTH == 0 ||
+		    bit_depth_params->flags.TRUNCATE_DEPTH == 1)
+			trunc_round_depth = DCP_OUT_TRUNC_ROUND_DEPTH_8BIT;
+		else if (bit_depth_params->flags.TRUNCATE_DEPTH == 2)
+			trunc_round_depth = DCP_OUT_TRUNC_ROUND_DEPTH_10BIT;
+		else {
+			/*
+			 * Invalid truncate/round depth. Setting here to 12bit
+			 * to prevent use-before-initialize errors.
+			 */
+			trunc_round_depth = DCP_OUT_TRUNC_ROUND_DEPTH_12BIT;
+			BREAK_TO_DEBUGGER();
+		}
+	}
+
+	/* DCE6 has no OUT_CLAMP_CONTROL_* registers - set_clamp() is skipped */
+	set_round(xfm_dce, trunc_mode, trunc_round_depth);
+	set_dither(xfm_dce,
+		   spatial_dither_enable,
+		   DCP_SPATIAL_DITHER_MODE_A_AA_A,
+		   DCP_SPATIAL_DITHER_DEPTH_30BPP,
+		   bit_depth_params->flags.FRAME_RANDOM,
+		   bit_depth_params->flags.RGB_RANDOM,
+		   bit_depth_params->flags.HIGHPASS_RANDOM);
+}
+#endif
+
 static int dce_transform_get_max_num_of_supported_lines(
 	struct dce_transform *xfm_dce,
 	enum lb_pixel_depth depth,
@@ -954,7 +1008,7 @@ static void dce60_transform_set_pixel_storage_depth(
 	}
 
 	set_denormalization(xfm_dce, color_depth);
-	program_bit_depth_reduction(xfm_dce, color_depth, bit_depth_params);
+	dce60_program_bit_depth_reduction(xfm_dce, color_depth, bit_depth_params);
 
 	/* DATA_FORMAT in DCE6 does not have PIXEL_DEPTH and PIXEL_EXPAN_MODE masks */
 
