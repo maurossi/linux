@@ -677,7 +677,32 @@ void dce110_opp_program_fmt(
 	return;
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_opp_program_fmt(
+	struct output_pixel_processor *opp,
+	struct bit_depth_reduction_params *fmt_bit_depth,
+	struct clamping_and_pixel_encoding_params *clamping)
+{
+	/* dithering is affected by <CrtcSourceSelect>, hence should be
+	 * programmed afterwards */
 
+	if (clamping->pixel_encoding == PIXEL_ENCODING_YCBCR420)
+		program_formatter_420_memory(opp);
+
+	dce60_opp_program_bit_depth_reduction(
+		opp,
+		fmt_bit_depth);
+
+	dce60_opp_program_clamping_and_pixel_encoding(
+		opp,
+		clamping);
+
+	if (clamping->pixel_encoding == PIXEL_ENCODING_YCBCR420)
+		program_formatter_reset_dig_resync_fifo(opp);
+
+	return;
+}
+#endif
 
 
 
@@ -691,6 +716,15 @@ static const struct opp_funcs funcs = {
 	.opp_program_fmt = dce110_opp_program_fmt,
 	.opp_program_bit_depth_reduction = dce110_opp_program_bit_depth_reduction
 };
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static const struct opp_funcs dce60_opp_funcs = {
+	.opp_set_dyn_expansion = dce110_opp_set_dyn_expansion,
+	.opp_destroy = dce110_opp_destroy,
+	.opp_program_fmt = dce60_opp_program_fmt,
+	.opp_program_bit_depth_reduction = dce60_opp_program_bit_depth_reduction
+};
+#endif
 
 void dce110_opp_construct(struct dce110_opp *opp110,
 	struct dc_context *ctx,
@@ -709,6 +743,26 @@ void dce110_opp_construct(struct dce110_opp *opp110,
 	opp110->opp_shift = opp_shift;
 	opp110->opp_mask = opp_mask;
 }
+
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_opp_construct(struct dce110_opp *opp110,
+	struct dc_context *ctx,
+	uint32_t inst,
+	const struct dce_opp_registers *regs,
+	const struct dce_opp_shift *opp_shift,
+	const struct dce_opp_mask *opp_mask)
+{
+	opp110->base.funcs = &dce60_opp_funcs;
+
+	opp110->base.ctx = ctx;
+
+	opp110->base.inst = inst;
+
+	opp110->regs = regs;
+	opp110->opp_shift = opp_shift;
+	opp110->opp_mask = opp_mask;
+}
+#endif
 
 void dce110_opp_destroy(struct output_pixel_processor **opp)
 {
