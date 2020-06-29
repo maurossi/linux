@@ -319,6 +319,15 @@ void dce110_opp_construct(struct dce110_opp *opp110,
 	const struct dce_opp_shift *opp_shift,
 	const struct dce_opp_mask *opp_mask);
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_opp_construct(struct dce110_opp *opp110,
+	struct dc_context *ctx,
+	uint32_t inst,
+	const struct dce_opp_registers *regs,
+	const struct dce_opp_shift *opp_shift,
+	const struct dce_opp_mask *opp_mask);
+#endif
+
 void dce110_opp_destroy(struct output_pixel_processor **opp);
 
 
