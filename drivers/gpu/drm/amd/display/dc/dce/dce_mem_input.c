@@ -174,6 +174,22 @@ static void program_urgency_watermark(
 		URGENCY_HIGH_WATERMARK, urgency_high_wm);
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_program_urgency_watermark(
+	struct dce_mem_input *dce_mi,
+	uint32_t wm_select,
+	uint32_t urgency_low_wm,
+	uint32_t urgency_high_wm)
+{
+	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
+		URGENCY_WATERMARK_MASK, wm_select);
+
+	REG_SET_2(DPG_PIPE_URGENCY_CONTROL, 0,
+		URGENCY_LOW_WATERMARK, urgency_low_wm,
+		URGENCY_HIGH_WATERMARK, urgency_high_wm);
+}
+#endif
+
 static void dce120_program_urgency_watermark(
 	struct dce_mem_input *dce_mi,
 	uint32_t wm_select,
@@ -226,29 +242,12 @@ static void program_nbp_watermark(
 }
 
 #if defined(CONFIG_DRM_AMD_DC_SI)
-static void dce60_program_nbp_watermark(
-	struct dce_mem_input *dce_mi,
-	uint32_t wm_select,
-	uint32_t nbp_wm)
-{
-	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
-		NB_PSTATE_CHANGE_WATERMARK_MASK, wm_select);
-
-	REG_UPDATE_3(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
-		NB_PSTATE_CHANGE_ENABLE, 1,
-		NB_PSTATE_CHANGE_URGENT_DURING_REQUEST, 1,
-		NB_PSTATE_CHANGE_NOT_SELF_REFRESH_DURING_REQUEST, 1);
-
-	REG_UPDATE(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
-		NB_PSTATE_CHANGE_WATERMARK, nbp_wm);
-}
-
 static void dce60_program_stutter_watermark(
 	struct dce_mem_input *dce_mi,
 	uint32_t wm_select,
 	uint32_t stutter_mark)
 {
-	REG_UPDATE(DPG_PIPE_ARBITRATION_CONTROL3,
+	REG_UPDATE(DPG_PIPE_STUTTER_CONTROL,
 		STUTTER_EXIT_SELF_REFRESH_WATERMARK_MASK, wm_select);
 
 	REG_UPDATE(DPG_PIPE_STUTTER_CONTROL,
@@ -329,16 +328,16 @@ static void dce60_mi_program_display_marks(
 	struct dce_mem_input *dce_mi = TO_DCE_MEM_INPUT(mi);
 	uint32_t stutter_en = mi->ctx->dc->debug.disable_stutter ? 0 : 1;
 
-	program_urgency_watermark(dce_mi, 2, /* set a */
+	dce60_program_urgency_watermark(dce_mi, 2, /* set a */
 			urgent.a_mark, total_dest_line_time_ns);
-	program_urgency_watermark(dce_mi, 1, /* set d */
+	dce60_program_urgency_watermark(dce_mi, 1, /* set d */
 			urgent.d_mark, total_dest_line_time_ns);
 
 	REG_UPDATE_2(DPG_PIPE_STUTTER_CONTROL,
 		STUTTER_ENABLE, stutter_en,
 		STUTTER_IGNORE_FBC, 1);
-	dce60_program_nbp_watermark(dce_mi, 2, nbp.a_mark); /* set a */
-	dce60_program_nbp_watermark(dce_mi, 1, nbp.d_mark); /* set d */
+
+	/* DCE6 has no nbp watermark */
 
 	dce60_program_stutter_watermark(dce_mi, 2, stutter_exit.a_mark); /* set a */
 	dce60_program_stutter_watermark(dce_mi, 1, stutter_exit.d_mark); /* set d */
@@ -428,7 +427,7 @@ static void program_tiling(
 		 */
 	}
 
-	if (dce_mi->masks->GRPH_ARRAY_MODE) { /* GFX8 */
+	if (dce_mi->masks->GRPH_MICRO_TILE_MODE) { /* GFX8 */
 		REG_UPDATE_9(GRPH_CONTROL,
 				GRPH_NUM_BANKS, info->gfx8.num_banks,
 				GRPH_BANK_WIDTH, info->gfx8.bank_width,
@@ -436,6 +435,23 @@ static void program_tiling(
 				GRPH_MACRO_TILE_ASPECT, info->gfx8.tile_aspect,
 				GRPH_TILE_SPLIT, info->gfx8.tile_split,
 				GRPH_MICRO_TILE_MODE, info->gfx8.tile_mode,
+				GRPH_PIPE_CONFIG, info->gfx8.pipe_config,
+				GRPH_ARRAY_MODE, info->gfx8.array_mode,
+				GRPH_COLOR_EXPANSION_MODE, 1);
+		/* 01 - DCP_GRPH_COLOR_EXPANSION_MODE_ZEXP: zero expansion for YCbCr */
+		/*
+				GRPH_Z, 0);
+				*/
+	}
+
+	if (dce_mi->masks->GRPH_ARRAY_MODE) { /* GFX6 but reuses gfx8 struct */
+		REG_UPDATE_8(GRPH_CONTROL,
+				GRPH_NUM_BANKS, info->gfx8.num_banks,
+				GRPH_BANK_WIDTH, info->gfx8.bank_width,
+				GRPH_BANK_HEIGHT, info->gfx8.bank_height,
+				GRPH_MACRO_TILE_ASPECT, info->gfx8.tile_aspect,
+				GRPH_TILE_SPLIT, info->gfx8.tile_split,
+				/* DCE6 has no GRPH_MICRO_TILE_MODE mask */
 				GRPH_PIPE_CONFIG, info->gfx8.pipe_config,
 				GRPH_ARRAY_MODE, info->gfx8.array_mode,
 				GRPH_COLOR_EXPANSION_MODE, 1);
