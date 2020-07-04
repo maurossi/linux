@@ -802,6 +802,12 @@ void dce_pipe_control_lock(struct dc *dc,
 void dce_set_blender_mode(struct dce_hwseq *hws,
 	unsigned int blnd_inst, enum blnd_mode mode);
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+void dce60_pipe_control_lock(struct dc *dc,
+		struct pipe_ctx *pipe,
+		bool lock);
+#endif
+
 void dce_clock_gating_power_up(struct dce_hwseq *hws,
 		bool enable);
 
