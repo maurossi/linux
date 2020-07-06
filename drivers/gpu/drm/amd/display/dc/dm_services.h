@@ -125,7 +125,7 @@ static inline uint32_t set_reg_field_value_ex(
 	uint8_t shift)
 {
 	DRM_INFO("set_reg_field_value_ex( reg_value = %x value = %x mask = %x shift = %d )\n", reg_value, value, mask, shift);
-	WARN_ON(mask != 0);
+	WARN_ON(mask == 0);
 	return (reg_value & ~mask) | (mask & (value << shift));
 }
 
