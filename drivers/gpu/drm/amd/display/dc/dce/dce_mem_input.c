@@ -209,6 +209,25 @@ static void dce120_program_urgency_watermark(
 
 }
 
+#if defined(CONFIG_DRM_AMD_DC_SI)
+static void dce60_program_nbp_watermark(
+	struct dce_mem_input *dce_mi,
+	uint32_t wm_select,
+	uint32_t nbp_wm)
+{
+	REG_UPDATE(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
+		NB_PSTATE_CHANGE_WATERMARK_MASK, wm_select);
+
+	REG_UPDATE_3(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
+		NB_PSTATE_CHANGE_ENABLE, 1,
+		NB_PSTATE_CHANGE_URGENT_DURING_REQUEST, 1,
+		NB_PSTATE_CHANGE_NOT_SELF_REFRESH_DURING_REQUEST, 1);
+
+	REG_UPDATE(DPG_PIPE_NB_PSTATE_CHANGE_CONTROL,
+		NB_PSTATE_CHANGE_WATERMARK, nbp_wm);
+}
+#endif
+
 static void program_nbp_watermark(
 	struct dce_mem_input *dce_mi,
 	uint32_t wm_select,
@@ -336,8 +355,8 @@ static void dce60_mi_program_display_marks(
 	REG_UPDATE_2(DPG_PIPE_STUTTER_CONTROL,
 		STUTTER_ENABLE, stutter_en,
 		STUTTER_IGNORE_FBC, 1);
-
-	/* DCE6 has no nbp watermark */
+	dce60_program_nbp_watermark(dce_mi, 2, nbp.a_mark); /* set a */
+	dce60_program_nbp_watermark(dce_mi, 1, nbp.d_mark); /* set d */
 
 	dce60_program_stutter_watermark(dce_mi, 2, stutter_exit.a_mark); /* set a */
 	dce60_program_stutter_watermark(dce_mi, 1, stutter_exit.d_mark); /* set d */
