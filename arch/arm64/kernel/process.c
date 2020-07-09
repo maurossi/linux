@@ -40,6 +40,7 @@
 #include <linux/percpu.h>
 #include <linux/thread_info.h>
 #include <linux/prctl.h>
+#include <trace/hooks/fpsimd.h>
 
 #include <asm/alternative.h>
 #include <asm/compat.h>
@@ -521,6 +522,8 @@ __notrace_funcgraph struct task_struct *__switch_to(struct task_struct *prev,
 	/* avoid expensive SCTLR_EL1 accesses if no change */
 	if (prev->thread.sctlr_user != next->thread.sctlr_user)
 		update_sctlr_el1(next->thread.sctlr_user);
+
+	trace_android_vh_is_fpsimd_save(prev, next);
 
 	/* the actual thread switch */
 	last = cpu_switch_to(prev, next);
