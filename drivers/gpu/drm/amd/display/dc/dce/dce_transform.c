@@ -465,9 +465,9 @@ static void dce60_transform_set_scaler(
 
 		if (coeffs_v != xfm_dce->filter_v || coeffs_h != xfm_dce->filter_h) {
 			/* 4. Program vertical filters */
-			if (xfm_dce->filter_v == NULL)
-				REG_SET(SCL_VERT_FILTER_CONTROL, 0,
-						SCL_V_2TAP_HARDCODE_COEF_EN, 0);
+
+			/* DCE6 has no SCL_V_2TAP_HARDCODE_COEF_EN bit in SCL_VERT_FILTER_CONTROL */
+
 			program_multi_taps_filter(
 					xfm_dce,
 					data->taps.v_taps,
@@ -480,9 +480,9 @@ static void dce60_transform_set_scaler(
 					FILTER_TYPE_ALPHA_VERTICAL);
 
 			/* 5. Program horizontal filters */
-			if (xfm_dce->filter_h == NULL)
-				REG_SET(SCL_HORZ_FILTER_CONTROL, 0,
-						SCL_H_2TAP_HARDCODE_COEF_EN, 0);
+
+			/* DCE6 has no SCL_H_2TAP_HARDCODE_COEF_EN bit in SCL_HORZ_FILTER_CONTROL */
+
 			program_multi_taps_filter(
 					xfm_dce,
 					data->taps.h_taps,
@@ -503,7 +503,7 @@ static void dce60_transform_set_scaler(
 	/* 6. Program the viewport */
 	program_viewport(xfm_dce, &data->viewport);
 
-	/* DCE6 does not have bit to flip to new coefficient memory */
+	/* DCE6 has no SCL_COEF_UPDATE_COMPLETE bit in SCL_UPDATE register */
 
 	/* DCE6 DATA_FORMAT register does not support ALPHA_EN */
 }
