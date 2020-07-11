@@ -103,60 +103,7 @@ int dce60_get_dp_ref_freq_khz(struct clk_mgr *clk_mgr_base)
 	return dce_adjust_dp_ref_freq_for_ss(clk_mgr, dp_ref_clk_khz);
 }
 
-static void dce_clock_read_integrated_info(struct clk_mgr_internal *clk_mgr_dce)
-{
-	struct dc_debug_options *debug = &clk_mgr_dce->base.ctx->dc->debug;
-	struct dc_bios *bp = clk_mgr_dce->base.ctx->dc_bios;
-	int i;
-
-	if (bp->integrated_info)
-		clk_mgr_dce->base.dentist_vco_freq_khz = bp->integrated_info->dentist_vco_freq;
-	if (clk_mgr_dce->base.dentist_vco_freq_khz == 0) {
-		clk_mgr_dce->base.dentist_vco_freq_khz = bp->fw_info.smu_gpu_pll_output_freq;
-		if (clk_mgr_dce->base.dentist_vco_freq_khz == 0)
-			clk_mgr_dce->base.dentist_vco_freq_khz = 3600000;
-	}
-
-	/*update the maximum display clock for each power state*/
-	for (i = 0; i < NUMBER_OF_DISP_CLK_VOLTAGE; ++i) {
-		enum dm_pp_clocks_state clk_state = DM_PP_CLOCKS_STATE_INVALID;
-
-		switch (i) {
-		case 0:
-			clk_state = DM_PP_CLOCKS_STATE_ULTRA_LOW;
-			break;
-
-		case 1:
-			clk_state = DM_PP_CLOCKS_STATE_LOW;
-			break;
-
-		case 2:
-			clk_state = DM_PP_CLOCKS_STATE_NOMINAL;
-			break;
-
-		case 3:
-			clk_state = DM_PP_CLOCKS_STATE_PERFORMANCE;
-			break;
-
-		default:
-			clk_state = DM_PP_CLOCKS_STATE_INVALID;
-			break;
-		}
-
-		/*Do not allow bad VBIOS/SBIOS to override with invalid values,
-		 * check for > 100MHz*/
-		if (bp->integrated_info)
-			if (bp->integrated_info->disp_clk_voltage[i].max_supported_clk >= 100000)
-				clk_mgr_dce->max_clks_by_state[clk_state].display_clk_khz =
-					bp->integrated_info->disp_clk_voltage[i].max_supported_clk;
-	}
-
-	if (!debug->disable_dfs_bypass && bp->integrated_info)
-		if (bp->integrated_info->gpu_cap_info & DFS_BYPASS_ENABLE)
-			clk_mgr_dce->dfs_bypass_enabled = true;
-}
-
-static void dce_pplib_apply_display_requirements(
+static void dce60_pplib_apply_display_requirements(
 	struct dc *dc,
 	struct dc_state *context)
 {
@@ -170,7 +117,7 @@ static void dce_pplib_apply_display_requirements(
 		dm_pp_apply_display_requirements(dc->ctx, pp_display_cfg);
 }
 
-static void dce_update_clocks(struct clk_mgr *clk_mgr_base,
+static void dce60_update_clocks(struct clk_mgr *clk_mgr_base,
 			struct dc_state *context,
 			bool safe_to_lower)
 {
@@ -194,7 +141,7 @@ static void dce_update_clocks(struct clk_mgr *clk_mgr_base,
 		patched_disp_clk = dce_set_clock(clk_mgr_base, patched_disp_clk);
 		clk_mgr_base->clks.dispclk_khz = patched_disp_clk;
 	}
-	dce_pplib_apply_display_requirements(clk_mgr_base->ctx->dc, context);
+	dce60_pplib_apply_display_requirements(clk_mgr_base->ctx->dc, context);
 }
 
 
@@ -206,7 +153,7 @@ static void dce_update_clocks(struct clk_mgr *clk_mgr_base,
 
 static struct clk_mgr_funcs dce60_funcs = {
 	.get_dp_ref_clk_frequency = dce60_get_dp_ref_freq_khz,
-	.update_clocks = dce_update_clocks
+	.update_clocks = dce60_update_clocks
 };
 
 void dce60_clk_mgr_construct(
