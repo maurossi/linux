@@ -4514,4 +4514,20 @@
 #define mmLB4_VBLANK_STATUS                             0x46EF
 #define mmLB5_VBLANK_STATUS                             0x49EF
 
+#define mmSCL_HORZ_FILTER_INIT_RGB_LUMA            0x1B4C
+#define mmSCL0_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x1B4C
+#define mmSCL1_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x1E4C
+#define mmSCL2_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x414C
+#define mmSCL3_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x444C
+#define mmSCL4_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x474C
+#define mmSCL5_SCL_HORZ_FILTER_INIT_RGB_LUMA            0x4A4C
+
+#define mmSCL_HORZ_FILTER_INIT_CHROMA              0x1B4D
+#define mmSCL0_SCL_HORZ_FILTER_INIT_CHROMA              0x1B4D
+#define mmSCL1_SCL_HORZ_FILTER_INIT_CHROMA              0x1E4D
+#define mmSCL2_SCL_HORZ_FILTER_INIT_CHROMA              0x414D
+#define mmSCL3_SCL_HORZ_FILTER_INIT_CHROMA              0x444D
+#define mmSCL4_SCL_HORZ_FILTER_INIT_CHROMA              0x474D
+#define mmSCL5_SCL_HORZ_FILTER_INIT_CHROMA              0x4A4D
+
 #endif
