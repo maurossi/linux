@@ -10,6 +10,7 @@
 #include <trace/hooks/vendor_hooks.h>
 #include <trace/hooks/sched.h>
 #include <trace/hooks/fpsimd.h>
+#include <trace/hooks/binder.h>
 #include <trace/hooks/rwsem.h>
 #include <trace/hooks/futex.h>
 #include <trace/hooks/dtask.h>
@@ -45,6 +46,11 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_user_nice);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_setscheduler);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_arch_set_freq_scale);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_is_fpsimd_save);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_transaction_init);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_set_priority);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_restore_priority);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_wakeup_poll_threads_ilocked);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_binder_wakeup_thread_ilocked);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rwsem_init);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rwsem_wake);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_rwsem_write_finished);
