@@ -75,6 +75,10 @@ DECLARE_HOOK(android_vh_dump_throttled_rt_tasks,
 			s64 rt_period_timer_expires),
 	TP_ARGS(cpu, clock, rt_period, rt_runtime, rt_period_timer_expires));
 
+DECLARE_HOOK(android_vh_jiffies_update,
+	TP_PROTO(void *unused),
+	TP_ARGS(unused));
+
 struct rq_flags;
 DECLARE_RESTRICTED_HOOK(android_rvh_sched_newidle_balance,
 	TP_PROTO(struct rq *this_rq, struct rq_flags *rf,
@@ -118,6 +122,11 @@ DECLARE_RESTRICTED_HOOK(android_rvh_set_sugov_update,
 DECLARE_RESTRICTED_HOOK(android_rvh_sched_setaffinity,
 	TP_PROTO(struct task_struct *p, const struct cpumask *in_mask, int *retval),
 	TP_ARGS(p, in_mask, retval), 1);
+
+DECLARE_RESTRICTED_HOOK(android_rvh_update_cpus_allowed,
+	TP_PROTO(struct task_struct *p, cpumask_var_t cpus_requested,
+		 const struct cpumask *new_mask, int *ret),
+	TP_ARGS(p, cpus_requested, new_mask, ret), 1);
 
 DECLARE_RESTRICTED_HOOK(android_rvh_set_task_cpu,
 	TP_PROTO(struct task_struct *p, unsigned int new_cpu),
