@@ -192,8 +192,6 @@ static bool dce60_is_tg_enabled(struct timing_generator *tg)
 bool dce60_configure_crc(struct timing_generator *tg,
 			  const struct crc_params *params)
 {
-	struct dce110_timing_generator *tg110 = DCE110TG_FROM_TG(tg);
-
 	/* Cannot configure crc on a CRTC that is disabled */
 	if (!dce60_is_tg_enabled(tg))
 		return false;
