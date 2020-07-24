@@ -266,7 +266,7 @@ static void dce60_program_scaler(const struct dc *dc,
 		&pipe_ctx->plane_res.scl_data);
 }
 
-
+static void
 dce60_program_front_end_for_pipe(
 		struct dc *dc, struct pipe_ctx *pipe_ctx)
 {
