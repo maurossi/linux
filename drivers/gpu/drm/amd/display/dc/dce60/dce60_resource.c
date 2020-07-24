@@ -379,7 +379,7 @@ static const struct resource_caps res_cap_61 = {
 		.num_timing_generator = 4,
 		.num_audio = 6,
 		.num_stream_encoder = 6,
-		.num_pll = 2,
+		.num_pll = 3,
 		.num_ddc = 6,
 };
 
@@ -983,9 +983,7 @@ static bool dce60_construct(
 				dce60_clock_source_create(ctx, bp, CLOCK_SOURCE_ID_PLL0, &clk_src_regs[0], false);
 		pool->base.clock_sources[1] =
 				dce60_clock_source_create(ctx, bp, CLOCK_SOURCE_ID_PLL1, &clk_src_regs[1], false);
-		pool->base.clock_sources[2] =
-				dce60_clock_source_create(ctx, bp, CLOCK_SOURCE_ID_PLL2, &clk_src_regs[2], false);
-		pool->base.clk_src_count = 3;
+		pool->base.clk_src_count = 2;
 
 	} else {
 		pool->base.dp_clock_source =
@@ -993,9 +991,7 @@ static bool dce60_construct(
 
 		pool->base.clock_sources[0] =
 				dce60_clock_source_create(ctx, bp, CLOCK_SOURCE_ID_PLL1, &clk_src_regs[1], false);
-		pool->base.clock_sources[1] =
-				dce60_clock_source_create(ctx, bp, CLOCK_SOURCE_ID_PLL2, &clk_src_regs[2], false);
-		pool->base.clk_src_count = 2;
+		pool->base.clk_src_count = 1;
 	}
 
 	if (pool->base.dp_clock_source == NULL) {
