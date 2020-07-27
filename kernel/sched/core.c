@@ -2007,6 +2007,7 @@ void activate_task(struct rq *rq, struct task_struct *p, int flags)
 
 	p->on_rq = TASK_ON_RQ_QUEUED;
 }
+EXPORT_SYMBOL_GPL(activate_task);
 
 void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
 {
@@ -2014,6 +2015,7 @@ void deactivate_task(struct rq *rq, struct task_struct *p, int flags)
 
 	dequeue_task(rq, p, flags);
 }
+EXPORT_SYMBOL_GPL(deactivate_task);
 
 static inline int __normal_prio(int policy, int rt_prio, int nice)
 {
@@ -2106,6 +2108,7 @@ void check_preempt_curr(struct rq *rq, struct task_struct *p, int flags)
 	if (task_on_rq_queued(rq->curr) && test_tsk_need_resched(rq->curr))
 		rq_clock_skip_update(rq);
 }
+EXPORT_SYMBOL_GPL(check_preempt_curr);
 
 #ifdef CONFIG_SMP
 
@@ -3057,6 +3060,7 @@ void set_task_cpu(struct task_struct *p, unsigned int new_cpu)
 
 	__set_task_cpu(p, new_cpu);
 }
+EXPORT_SYMBOL_GPL(set_task_cpu);
 
 #ifdef CONFIG_NUMA_BALANCING
 static void __migrate_swap_task(struct task_struct *p, int cpu)
