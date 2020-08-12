@@ -20,3 +20,4 @@ device-mapper changes
 filesystem changes
 Incremental filesystem
 networking changes
+hardware-wrapped key support
