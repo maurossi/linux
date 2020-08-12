@@ -24,3 +24,4 @@ filesystem changes
 Incremental filesystem
 networking changes
 hardware-wrapped key support
+db845c (DragonBoard 845c) support
