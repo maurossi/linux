@@ -23,3 +23,4 @@ networking changes
 hardware-wrapped key support
 Android vendor hooks
 Android exports
+Android kconfigs and build scripts
