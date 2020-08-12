@@ -25,3 +25,4 @@ Incremental filesystem
 networking changes
 hardware-wrapped key support
 db845c (DragonBoard 845c) support
+Android kconfigs and build scripts
