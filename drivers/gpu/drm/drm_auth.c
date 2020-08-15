@@ -155,6 +155,7 @@ struct drm_master *drm_master_create(struct drm_device *dev)
 static void drm_set_master(struct drm_device *dev, struct drm_file *fpriv,
 			   bool new_master)
 {
+	DRM_INFO("({ex,im}plicit set) process \"%s\" [%d] master = %d\n", current->comm, task_pid_nr(current), fpriv->is_master);
 	dev->master = drm_master_get(fpriv->master);
 	if (dev->driver->master_set)
 		dev->driver->master_set(dev, fpriv, new_master);
@@ -290,6 +291,7 @@ out_unlock:
 static void drm_drop_master(struct drm_device *dev,
 			    struct drm_file *fpriv)
 {
+	DRM_INFO("({ex,im}plicit drop) process \"%s\" [%d] master = %d\n", current->comm, task_pid_nr(current), fpriv->is_master);
 	if (dev->driver->master_drop)
 		dev->driver->master_drop(dev, fpriv);
 	drm_master_put(&dev->master);
