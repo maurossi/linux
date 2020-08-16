@@ -2937,7 +2937,6 @@ retry_after_prio_restore:
 			pending_async = true;
 		else
 			node->has_async_transaction = true;
-		}
 		if (thread && pending_async) {
 			/*
 			 * The node state has changed since we selected
