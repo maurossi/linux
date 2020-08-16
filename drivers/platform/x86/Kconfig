@@ -457,7 +457,7 @@ config DELL_WMI_LED
 config DV11P_TABLET
 	tristate "Dell Venue 11 Pro Tablet support"
 	depends on ACPI
-	---help---
+	help
 	  This driver provides power button support and docking events for the Dell Venue 11 Pro tablet.
 
 config AMILO_RFKILL
@@ -759,7 +759,7 @@ config S103T_WMI
 	tristate "Lenovo S10-3T Rotate Button Support"
 	depends on ACPI_WMI
 	depends on INPUT
-	---help---
+	help
 	  This is a driver for the Lenovo ideapad S10-3T rotate button.
 
 	  To compile this driver as a module, choose M here: the module will
