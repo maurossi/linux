@@ -609,6 +609,13 @@ enum ufshcd_quirks {
 	 * breaks the HCE sequence if used.
 	 */
 	UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE		= 1 << 21,
+
+	/*
+	 * This quirk needs to be enabled if the host controller requires that
+	 * the PRDT be cleared after each encrypted request because encryption
+	 * keys were stored in it.
+	 */
+	UFSHCD_QUIRK_KEYS_IN_PRDT			= 1 << 22,
 };
 
 enum ufshcd_caps {
