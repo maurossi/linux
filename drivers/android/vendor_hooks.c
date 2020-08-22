@@ -26,6 +26,7 @@
 #include <trace/hooks/mm.h>
 #include <trace/hooks/preemptirq.h>
 #include <trace/hooks/ftrace_dump.h>
+#include <trace/hooks/ufshcd.h>
 #include <trace/hooks/cgroup.h>
 #include <trace/hooks/sys.h>
 #include <trace/hooks/iommu.h>
@@ -135,8 +136,16 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_oops_exit);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_size_check);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_format_check);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_dump_buffer);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_fill_prdt);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_prepare_command);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_update_sysfs);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_command);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_compl_command);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_set_task);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_syscall_prctl_finished);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_uic_command);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_send_tm_command);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ufs_check_int_errors);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_cgroup_attach);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_iommu_setup_dma_ops);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ptype_head);
