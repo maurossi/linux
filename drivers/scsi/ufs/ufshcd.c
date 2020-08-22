@@ -5306,6 +5306,7 @@ static void __ufshcd_transfer_req_compl(struct ufs_hba *hba,
 			ufshcd_add_command_trace(hba, index, UFS_CMD_COMP);
 			cmd->result = ufshcd_transfer_rsp_status(hba, lrbp);
 			ufshcd_release_scsi_cmd(hba, lrbp);
+			ufshcd_crypto_clear_prdt(hba, lrbp);
 			/* Do not touch lrbp after scsi done */
 			scsi_done(cmd);
 		} else if (lrbp->command_type == UTP_CMD_TYPE_DEV_MANAGE ||
