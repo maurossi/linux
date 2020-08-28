@@ -115,16 +115,25 @@ struct drm_nouveau_gem_pushbuf {
 	__u64 gart_available;
 };
 
-#define NOUVEAU_GEM_PUSHBUF_FENCE_WAIT (1 << 0)
-#define NOUVEAU_GEM_PUSHBUF_FENCE_EMIT (1 << 1)
-#define NOUVEAU_GEM_PUSHBUF_FLAGS (NOUVEAU_GEM_PUSHBUF_FENCE_WAIT | \
-				   NOUVEAU_GEM_PUSHBUF_FENCE_EMIT)
+#define NOUVEAU_GEM_FENCE_WAIT	(1 << 0)
+#define NOUVEAU_GEM_FENCE_EMIT	(1 << 1)
+#define NOUVEAU_GEM_FENCE_FD	(1 << 2)
+#define NOUVEAU_GEM_FENCE_FLAGS	(NOUVEAU_GEM_FENCE_WAIT | \
+				 NOUVEAU_GEM_FENCE_EMIT | \
+				 NOUVEAU_GEM_FENCE_FD)
+
+struct drm_nouveau_gem_fence {
+	__u32 handle;
+	__u32 flags;
+};
+
+#define NOUVEAU_GEM_PUSHBUF_FLAGS	0
 
 struct drm_nouveau_gem_pushbuf2 {
 	struct drm_nouveau_gem_pushbuf base;
 	__u32 flags;
-	__s32 fence;
-	__u64 reserved;
+	__u32 num_fences;
+	__u64 fences;
 };
 
 #define NOUVEAU_GEM_CPU_PREP_NOWAIT                                  0x00000001
