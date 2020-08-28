@@ -19,6 +19,7 @@ struct nouveau_fence {
 
 int  nouveau_fence_new(struct nouveau_channel *, bool sysmem,
 		       struct nouveau_fence **);
+struct nouveau_fence *nouveau_fence_ref(struct nouveau_fence *);
 void nouveau_fence_unref(struct nouveau_fence **);
 
 int  nouveau_fence_emit(struct nouveau_fence *, struct nouveau_channel *);
