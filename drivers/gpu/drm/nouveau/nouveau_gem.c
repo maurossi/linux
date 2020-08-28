@@ -24,6 +24,9 @@
  *
  */
 
+#include <linux/file.h>
+#include <linux/sync_file.h>
+
 #include "nouveau_drv.h"
 #include "nouveau_dma.h"
 #include "nouveau_fence.h"
@@ -667,23 +670,29 @@ nouveau_gem_pushbuf_reloc_apply(struct nouveau_cli *cli,
 	return ret;
 }
 
-int
-nouveau_gem_ioctl_pushbuf(struct drm_device *dev, void *data,
-			  struct drm_file *file_priv)
+static int
+__nouveau_gem_ioctl_pushbuf(struct drm_device *dev,
+			    struct drm_nouveau_gem_pushbuf2 *request,
+			    struct drm_file *file_priv)
 {
 	struct nouveau_abi16 *abi16 = nouveau_abi16_get(file_priv);
 	struct nouveau_cli *cli = nouveau_cli(file_priv);
 	struct nouveau_abi16_chan *temp;
 	struct nouveau_drm *drm = nouveau_drm(dev);
-	struct drm_nouveau_gem_pushbuf *req = data;
+	struct drm_nouveau_gem_pushbuf *req = &request->base;
 	struct drm_nouveau_gem_pushbuf_push *push;
 	struct drm_nouveau_gem_pushbuf_reloc *reloc = NULL;
 	struct drm_nouveau_gem_pushbuf_bo *bo;
 	struct nouveau_channel *chan = NULL;
 	struct validate_op op;
 	struct nouveau_fence *fence = NULL;
+	struct dma_fence *prefence = NULL;
 	int i, j, ret = 0;
 	bool do_reloc = false, sync = false;
+
+	/* check for unrecognized flags */
+	if (request->flags & ~NOUVEAU_GEM_PUSHBUF_FLAGS)
+		return -EINVAL;
 
 	if (unlikely(!abi16))
 		return -ENOMEM;
@@ -752,6 +761,15 @@ revalidate:
 		if (ret != -ERESTARTSYS)
 			NV_PRINTK(err, cli, "validate: %d\n", ret);
 		goto out_prevalid;
+	}
+
+	if (request->flags & NOUVEAU_GEM_PUSHBUF_FENCE_WAIT) {
+		prefence = sync_file_get_fence(request->fence);
+		if (prefence) {
+			ret = nouveau_fence_sync(prefence, chan, true);
+			if (ret < 0)
+				goto out;
+		}
 	}
 
 	/* Apply any relocations that are required */
@@ -855,7 +873,30 @@ revalidate:
 		}
 	}
 
+	if (request->flags & NOUVEAU_GEM_PUSHBUF_FENCE_EMIT) {
+		struct sync_file *file;
+		int fd;
+
+		fd = get_unused_fd_flags(O_CLOEXEC);
+		if (fd < 0) {
+			ret = fd;
+			goto out;
+		}
+
+		file = sync_file_create(&fence->base);
+		if (!file) {
+			put_unused_fd(fd);
+			goto out;
+		}
+
+		fd_install(fd, file->file);
+		request->fence = fd;
+	}
+
 out:
+	if (prefence)
+		dma_fence_put(prefence);
+
 	validate_fini(&op, chan, fence, bo);
 	nouveau_fence_unref(&fence);
 
@@ -895,6 +936,27 @@ out_next:
 	}
 
 	return nouveau_abi16_put(abi16, ret);
+}
+
+int
+nouveau_gem_ioctl_pushbuf(struct drm_device *dev, void *data,
+			  struct drm_file *file_priv)
+{
+	struct drm_nouveau_gem_pushbuf *request = data;
+	struct drm_nouveau_gem_pushbuf2 req;
+	int ret;
+
+	memset(&req, 0, sizeof(req));
+	memcpy(&req.base, request, sizeof(*request));
+
+	ret = __nouveau_gem_ioctl_pushbuf(dev, &req, file_priv);
+
+	request->gart_available = req.base.gart_available;
+	request->vram_available = req.base.vram_available;
+	request->suffix1 = req.base.suffix1;
+	request->suffix0 = req.base.suffix0;
+
+	return ret;
 }
 
 int
@@ -962,5 +1024,14 @@ nouveau_gem_ioctl_info(struct drm_device *dev, void *data,
 	ret = nouveau_gem_info(file_priv, gem, req);
 	drm_gem_object_put(gem);
 	return ret;
+}
+
+int
+nouveau_gem_ioctl_pushbuf2(struct drm_device *dev, void *data,
+			   struct drm_file *file_priv)
+{
+	struct drm_nouveau_gem_pushbuf2 *req = data;
+
+	return __nouveau_gem_ioctl_pushbuf(dev, req, file_priv);
 }
 
