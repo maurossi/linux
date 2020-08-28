@@ -363,6 +363,15 @@ nouveau_fence_sync(struct dma_fence *fence, struct nouveau_channel *chan,
 	return ret;
 }
 
+struct nouveau_fence *
+nouveau_fence_ref(struct nouveau_fence *fence)
+{
+	if (fence)
+		dma_fence_get(&fence->base);
+
+	return fence;
+}
+
 void
 nouveau_fence_unref(struct nouveau_fence **pfence)
 {
