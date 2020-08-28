@@ -806,9 +806,9 @@ __nouveau_gem_ioctl_pushbuf(struct drm_device *dev,
 	struct nouveau_abi16_chan *temp;
 	struct nouveau_drm *drm = nouveau_drm(dev);
 	struct drm_nouveau_gem_pushbuf *req = &request->base;
-	struct drm_nouveau_gem_pushbuf_push *push;
 	struct drm_nouveau_gem_pushbuf_reloc *reloc = NULL;
-	struct drm_nouveau_gem_pushbuf_bo *bo;
+	struct drm_nouveau_gem_pushbuf_push *push = NULL;
+	struct drm_nouveau_gem_pushbuf_bo *bo = NULL;
 	struct drm_nouveau_gem_fence *fences = NULL;
 	struct nouveau_channel *chan = NULL;
 	struct validate_op op;
@@ -840,8 +840,6 @@ __nouveau_gem_ioctl_pushbuf(struct drm_device *dev,
 
 	req->vram_available = drm->gem.vram_available;
 	req->gart_available = drm->gem.gart_available;
-	if (unlikely(req->nr_push == 0))
-		goto out_next;
 
 	if (unlikely(req->nr_push > NOUVEAU_GEM_MAX_PUSH)) {
 		NV_PRINTK(err, cli, "pushbuf push count exceeds limit: %d max %d\n",
@@ -861,33 +859,35 @@ __nouveau_gem_ioctl_pushbuf(struct drm_device *dev,
 		return nouveau_abi16_put(abi16, -EINVAL);
 	}
 
-	push = u_memcpya(req->push, req->nr_push, sizeof(*push));
-	if (IS_ERR(push))
-		return nouveau_abi16_put(abi16, PTR_ERR(push));
+	if (req->nr_push > 0) {
+		push = u_memcpya(req->push, req->nr_push, sizeof(*push));
+		if (IS_ERR(push))
+			return nouveau_abi16_put(abi16, PTR_ERR(push));
 
-	bo = u_memcpya(req->buffers, req->nr_buffers, sizeof(*bo));
-	if (IS_ERR(bo)) {
-		u_free(push);
-		return nouveau_abi16_put(abi16, PTR_ERR(bo));
-	}
+		bo = u_memcpya(req->buffers, req->nr_buffers, sizeof(*bo));
+		if (IS_ERR(bo)) {
+			u_free(push);
+			return nouveau_abi16_put(abi16, PTR_ERR(bo));
+		}
 
-	/* Ensure all push buffers are on validate list */
-	for (i = 0; i < req->nr_push; i++) {
-		if (push[i].bo_index >= req->nr_buffers) {
-			NV_PRINTK(err, cli, "push %d buffer not in list\n", i);
-			ret = -EINVAL;
+		/* Ensure all push buffers are on validate list */
+		for (i = 0; i < req->nr_push; i++) {
+			if (push[i].bo_index >= req->nr_buffers) {
+				NV_PRINTK(err, cli, "push %d buffer not in list\n", i);
+				ret = -EINVAL;
+				goto out_prevalid;
+			}
+		}
+
+		/* Validate buffer list */
+revalidate:
+		ret = nouveau_gem_pushbuf_validate(chan, file_priv, bo,
+						   req->nr_buffers, &op, &do_reloc);
+		if (ret) {
+			if (ret != -ERESTARTSYS)
+				NV_PRINTK(err, cli, "validate: %d\n", ret);
 			goto out_prevalid;
 		}
-	}
-
-	/* Validate buffer list */
-revalidate:
-	ret = nouveau_gem_pushbuf_validate(chan, file_priv, bo,
-					   req->nr_buffers, &op, &do_reloc);
-	if (ret) {
-		if (ret != -ERESTARTSYS)
-			NV_PRINTK(err, cli, "validate: %d\n", ret);
-		goto out_prevalid;
 	}
 
 	if (request->num_fences > 0) {
@@ -905,89 +905,89 @@ revalidate:
 	}
 
 	/* Apply any relocations that are required */
-	if (do_reloc) {
-		if (!reloc) {
-			validate_fini(&op, chan, NULL, bo);
-			reloc = u_memcpya(req->relocs, req->nr_relocs, sizeof(*reloc));
-			if (IS_ERR(reloc)) {
-				ret = PTR_ERR(reloc);
-				goto out_prevalid;
-			}
-
-			goto revalidate;
-		}
-
-		ret = nouveau_gem_pushbuf_reloc_apply(cli, req, reloc, bo);
-		if (ret) {
-			NV_PRINTK(err, cli, "reloc apply: %d\n", ret);
-			goto out;
-		}
-	}
-
-	if (chan->dma.ib_max) {
-		ret = nouveau_dma_wait(chan, req->nr_push + 1, 16);
-		if (ret) {
-			NV_PRINTK(err, cli, "nv50cal_space: %d\n", ret);
-			goto out;
-		}
-
-		for (i = 0; i < req->nr_push; i++) {
-			struct nouveau_vma *vma = (void *)(unsigned long)
-				bo[push[i].bo_index].user_priv;
-
-			nv50_dma_push(chan, vma->addr + push[i].offset,
-				      push[i].length);
-		}
-	} else
-	if (drm->client.device.info.chipset >= 0x25) {
-		ret = PUSH_WAIT(chan->chan.push, req->nr_push * 2);
-		if (ret) {
-			NV_PRINTK(err, cli, "cal_space: %d\n", ret);
-			goto out;
-		}
-
-		for (i = 0; i < req->nr_push; i++) {
-			struct nouveau_bo *nvbo = (void *)(unsigned long)
-				bo[push[i].bo_index].user_priv;
-
-			PUSH_CALL(chan->chan.push, nvbo->offset + push[i].offset);
-			PUSH_DATA(chan->chan.push, 0);
-		}
-	} else {
-		ret = PUSH_WAIT(chan->chan.push, req->nr_push * (2 + NOUVEAU_DMA_SKIPS));
-		if (ret) {
-			NV_PRINTK(err, cli, "jmp_space: %d\n", ret);
-			goto out;
-		}
-
-		for (i = 0; i < req->nr_push; i++) {
-			struct nouveau_bo *nvbo = (void *)(unsigned long)
-				bo[push[i].bo_index].user_priv;
-			uint32_t cmd;
-
-			cmd = chan->push.addr + ((chan->dma.cur + 2) << 2);
-			cmd |= 0x20000000;
-			if (unlikely(cmd != req->suffix0)) {
-				if (!nvbo->kmap.virtual) {
-					ret = ttm_bo_kmap(&nvbo->bo, 0,
-							  nvbo->bo.mem.
-							  num_pages,
-							  &nvbo->kmap);
-					if (ret) {
-						WIND_RING(chan);
-						goto out;
-					}
-					nvbo->validate_mapped = true;
+	if (req->nr_push > 0) {
+		if (do_reloc) {
+			if (!reloc) {
+				validate_fini(&op, chan, NULL, bo);
+				reloc = u_memcpya(req->relocs, req->nr_relocs, sizeof(*reloc));
+				if (IS_ERR(reloc)) {
+					ret = PTR_ERR(reloc);
+					goto out_prevalid;
 				}
 
-				nouveau_bo_wr32(nvbo, (push[i].offset +
-						push[i].length - 8) / 4, cmd);
+				goto revalidate;
 			}
 
-			PUSH_JUMP(chan->chan.push, nvbo->offset + push[i].offset);
-			PUSH_DATA(chan->chan.push, 0);
-			for (j = 0; j < NOUVEAU_DMA_SKIPS; j++)
+			ret = nouveau_gem_pushbuf_reloc_apply(cli, req, reloc, bo);
+			if (ret) {
+				NV_PRINTK(err, cli, "reloc apply: %d\n", ret);
+				goto out;
+			}
+		}
+
+		if (chan->dma.ib_max) {
+			ret = nouveau_dma_wait(chan, req->nr_push + 1, 16);
+			if (ret) {
+				NV_PRINTK(err, cli, "nv50cal_space: %d\n", ret);
+				goto out;
+			}
+
+			for (i = 0; i < req->nr_push; i++) {
+				struct nouveau_vma *vma = (void *)(unsigned long)
+					bo[push[i].bo_index].user_priv;
+
+				nv50_dma_push(chan, vma->addr + push[i].offset,
+					      push[i].length);
+			}
+		} else if (drm->client.device.info.chipset >= 0x25) {
+			ret = PUSH_WAIT(chan->chan.push, req->nr_push * 2);
+			if (ret) {
+				NV_PRINTK(err, cli, "cal_space: %d\n", ret);
+				goto out;
+			}
+
+			for (i = 0; i < req->nr_push; i++) {
+				struct nouveau_bo *nvbo = (void *)(unsigned long)
+					bo[push[i].bo_index].user_priv;
+
+				PUSH_CALL(chan->chan.push, nvbo->offset + push[i].offset);
 				PUSH_DATA(chan->chan.push, 0);
+			}
+		} else {
+			ret = PUSH_WAIT(chan->chan.push, req->nr_push * (2 + NOUVEAU_DMA_SKIPS));
+			if (ret) {
+				NV_PRINTK(err, cli, "jmp_space: %d\n", ret);
+				goto out;
+			}
+
+			for (i = 0; i < req->nr_push; i++) {
+				struct nouveau_bo *nvbo = (void *)(unsigned long)
+					bo[push[i].bo_index].user_priv;
+				uint32_t cmd;
+
+				cmd = chan->push.addr + ((chan->dma.cur + 2) << 2);
+				cmd |= 0x20000000;
+				if (unlikely(cmd != req->suffix0)) {
+					if (!nvbo->kmap.virtual) {
+						ret = ttm_bo_kmap(&nvbo->bo, 0,
+								  nvbo->bo.mem.num_pages,
+								  &nvbo->kmap);
+						if (ret) {
+							WIND_RING(chan);
+							goto out;
+						}
+						nvbo->validate_mapped = true;
+					}
+
+					nouveau_bo_wr32(nvbo, (push[i].offset +
+							push[i].length - 8) / 4, cmd);
+				}
+
+				PUSH_JUMP(chan->chan.push, nvbo->offset + push[i].offset);
+				PUSH_DATA(chan->chan.push, 0);
+				for (j = 0; j < NOUVEAU_DMA_SKIPS; j++)
+					PUSH_DATA(chan->chan.push, 0);
+			}
 		}
 	}
 
@@ -1021,7 +1021,9 @@ revalidate:
 out:
 	u_free(fences);
 
-	validate_fini(&op, chan, fence, bo);
+	if (req->nr_push > 0)
+		validate_fini(&op, chan, fence, bo);
+
 	nouveau_fence_unref(&fence);
 
 	if (do_reloc) {
@@ -1045,7 +1047,6 @@ out_prevalid:
 	u_free(bo);
 	u_free(push);
 
-out_next:
 	if (chan->dma.ib_max) {
 		req->suffix0 = 0x00000000;
 		req->suffix1 = 0x00000000;
