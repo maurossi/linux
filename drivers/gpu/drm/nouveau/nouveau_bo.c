@@ -643,6 +643,42 @@ void nouveau_bo_del_io_reserve_lru(struct ttm_buffer_object *bo)
 }
 
 int
+nouveau_bo_sync(struct nouveau_bo *nvbo, struct nouveau_channel *chan,
+		bool exclusive, bool intr)
+{
+	struct dma_resv *resv = nvbo->bo.base.resv;
+	struct dma_resv_list *fobj;
+	struct dma_fence *fence;
+	int ret = 0, i;
+
+	if (!exclusive) {
+		ret = dma_resv_reserve_shared(resv, 1);
+		if (ret < 0)
+			return ret;
+	}
+
+	fobj = dma_resv_get_list(resv);
+	fence = dma_resv_get_excl(resv);
+
+	if (fence && (!exclusive || !fobj || !fobj->shared_count))
+		return nouveau_fence_sync(fence, chan, intr);
+
+	if (!exclusive || !fobj)
+		return ret;
+
+	for (i = 0; i < fobj->shared_count && !ret; ++i) {
+		fence = rcu_dereference_protected(fobj->shared[i],
+						  dma_resv_held(resv));
+
+		ret = nouveau_fence_sync(fence, chan, intr);
+		if (ret < 0)
+			break;
+	}
+
+	return ret;
+}
+
+int
 nouveau_bo_validate(struct nouveau_bo *nvbo, bool interruptible,
 		    bool no_wait_gpu)
 {
@@ -815,7 +851,7 @@ nouveau_bo_move_m2mf(struct ttm_buffer_object *bo, int evict, bool intr,
 	}
 
 	mutex_lock_nested(&cli->mutex, SINGLE_DEPTH_NESTING);
-	ret = nouveau_fence_sync(nouveau_bo(bo), chan, true, intr);
+	ret = nouveau_bo_sync(nouveau_bo(bo), chan, true, intr);
 	if (ret == 0) {
 		ret = drm->ttm.move(chan, bo, &bo->mem, new_reg);
 		if (ret == 0) {

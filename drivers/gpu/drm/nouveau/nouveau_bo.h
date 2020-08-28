@@ -97,6 +97,8 @@ int  nouveau_bo_validate(struct nouveau_bo *, bool interruptible,
 			 bool no_wait_gpu);
 void nouveau_bo_sync_for_device(struct nouveau_bo *nvbo);
 void nouveau_bo_sync_for_cpu(struct nouveau_bo *nvbo);
+int nouveau_bo_sync(struct nouveau_bo *nvbo, struct nouveau_channel *channel,
+		    bool exclusive, bool intr);
 void nouveau_bo_add_io_reserve_lru(struct ttm_buffer_object *bo);
 void nouveau_bo_del_io_reserve_lru(struct ttm_buffer_object *bo);
 
