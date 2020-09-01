@@ -97,6 +97,21 @@ unsigned long task_statm(struct mm_struct *mm,
 	return mm->total_vm;
 }
 
+static void seq_print_vma_name(struct seq_file *m, struct vm_area_struct *vma)
+{
+	struct mm_struct *mm = vma->vm_mm;
+	char anon_name[NAME_MAX + 1];
+	int n;
+
+	n = access_remote_vm_locked(mm, (unsigned long)vma_anon_name(vma), anon_name,
+				    NAME_MAX, 0);
+	if (n > 0) {
+		seq_puts(m, "[anon:");
+		seq_write(m, anon_name, strnlen(anon_name, n));
+		seq_putc(m, ']');
+	}
+}
+
 #ifdef CONFIG_NUMA
 /*
  * Save get_task_policy() for show_numa_map().
@@ -319,8 +334,15 @@ show_map_vma(struct seq_file *m, struct vm_area_struct *vma)
 			goto done;
 		}
 
-		if (is_stack(vma))
+		if (is_stack(vma)) {
 			name = "[stack]";
+			goto done;
+		}
+
+		if (vma_anon_name(vma)) {
+			seq_pad(m, ' ');
+			seq_print_vma_name(m, vma);
+		}
 	}
 
 done:
