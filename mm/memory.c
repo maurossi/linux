@@ -4876,16 +4876,16 @@ EXPORT_SYMBOL_GPL(generic_access_phys);
 /*
  * Access another process' address space as given in mm.  If non-NULL, use the
  * given task for page fault accounting.
+ * This variant assumes that the mmap_lock is already held by the caller, so
+ * doesn't take the mmap_lock.
  */
-int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
-		unsigned long addr, void *buf, int len, unsigned int gup_flags)
+int __access_remote_vm_locked(struct task_struct *tsk, struct mm_struct *mm,
+			      unsigned long addr, void *buf, int len,
+			      unsigned int gup_flags)
 {
 	struct vm_area_struct *vma;
 	void *old_buf = buf;
 	int write = gup_flags & FOLL_WRITE;
-
-	if (mmap_read_lock_killable(mm))
-		return 0;
 
 	/* ignore errors, just check how much was successfully transferred */
 	while (len) {
@@ -4935,9 +4935,46 @@ int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
 		buf += bytes;
 		addr += bytes;
 	}
+	return buf - old_buf;
+}
+
+/*
+ * Access another process' address space as given in mm.  If non-NULL, use the
+ * given task for page fault accounting.
+ */
+int __access_remote_vm(struct task_struct *tsk, struct mm_struct *mm,
+		       unsigned long addr, void *buf, int len, unsigned int gup_flags)
+{
+	int ret;
+
+	if (mmap_read_lock_killable(mm))
+		return 0;
+
+	ret = __access_remote_vm_locked(tsk, mm, addr, buf, len, gup_flags);
 	mmap_read_unlock(mm);
 
-	return buf - old_buf;
+	return ret;
+}
+
+/**
+ * access_remote_vm_locked - access another process' address space, without
+ * taking the mmap_lock. This allows nested calls from callers that already have
+ * taken the lock.
+ *
+ * @mm:		the mm_struct of the target address space
+ * @addr:	start address to access
+ * @buf:	source or destination buffer
+ * @len:	number of bytes to transfer
+ * @gup_flags:	flags modifying lookup behaviour
+ *
+ * The caller must hold a reference on @mm, as well as hold the mmap_lock
+ *
+ * Return: number of bytes copied from source to destination.
+ */
+int access_remote_vm_locked(struct mm_struct *mm, unsigned long addr, void *buf,
+			    int len, unsigned int gup_flags)
+{
+	return __access_remote_vm_locked(NULL, mm, addr, buf, len, gup_flags);
 }
 
 /**
