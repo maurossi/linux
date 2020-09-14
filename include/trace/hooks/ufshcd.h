@@ -24,6 +24,10 @@ DECLARE_HOOK(android_vh_ufs_prepare_command,
 		 struct ufshcd_lrb *lrbp, int *err),
 	TP_ARGS(hba, rq, lrbp, err));
 
+DECLARE_HOOK(android_vh_ufs_update_sysfs,
+	TP_PROTO(struct ufs_hba *hba),
+	TP_ARGS(hba));
+
 #endif /* _TRACE_HOOK_UFSHCD_H */
 /* This part must be outside protection */
 #include <trace/define_trace.h>
