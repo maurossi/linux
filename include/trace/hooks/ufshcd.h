@@ -19,6 +19,11 @@ DECLARE_HOOK(android_vh_ufs_fill_prdt,
 		 unsigned int segments, int *err),
 	TP_ARGS(hba, lrbp, segments, err));
 
+DECLARE_HOOK(android_vh_ufs_prepare_command,
+	TP_PROTO(struct ufs_hba *hba, struct request *rq,
+		 struct ufshcd_lrb *lrbp, int *err),
+	TP_ARGS(hba, rq, lrbp, err));
+
 #endif /* _TRACE_HOOK_UFSHCD_H */
 /* This part must be outside protection */
 #include <trace/define_trace.h>
