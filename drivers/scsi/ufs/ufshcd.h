@@ -597,6 +597,13 @@ enum ufshcd_quirks {
 	 * ufs_hba_variant_ops::init() must do it instead.
 	 */
 	UFSHCD_QUIRK_CUSTOM_KEYSLOT_MANAGER		= 1 << 20,
+
+	/*
+	 * This quirk needs to be enabled if the host controller supports inline
+	 * encryption, but the CRYPTO_GENERAL_ENABLE bit is not implemented and
+	 * breaks the HCE sequence if used.
+	 */
+	UFSHCD_QUIRK_BROKEN_CRYPTO_ENABLE		= 1 << 21,
 };
 
 enum ufshcd_caps {
