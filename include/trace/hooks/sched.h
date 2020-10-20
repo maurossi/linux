@@ -76,6 +76,10 @@ DECLARE_HOOK(android_vh_dump_throttled_rt_tasks,
 			s64 rt_period_timer_expires),
 	TP_ARGS(cpu, clock, rt_period, rt_runtime, rt_period_timer_expires));
 
+DECLARE_HOOK(android_vh_jiffies_update,
+	TP_PROTO(void *unused),
+	TP_ARGS(unused));
+
 struct rq_flags;
 DECLARE_RESTRICTED_HOOK(android_rvh_sched_newidle_balance,
 	TP_PROTO(struct rq *this_rq, struct rq_flags *rf,
@@ -152,6 +156,7 @@ DECLARE_HOOK(android_vh_em_cpu_energy,
 #define trace_android_rvh_setscheduler(p)
 #define trace_android_rvh_find_busiest_group(busiest, dst_rq, out_balance)
 #define trace_android_vh_dump_throttled_rt_tasks(cpu, clock, rt_period, rt_runtime, rt_period_timer_expires)
+#define trace_android_vh_jiffies_update(unused)
 #define trace_android_rvh_sched_newidle_balance(this_rq, rf, pulled_task, done)
 #define trace_android_rvh_sched_nohz_balancer_kick(rq, flags, done)
 #define trace_android_rvh_find_busiest_queue(dst_cpu, group, env_cpus, busiest, done)
