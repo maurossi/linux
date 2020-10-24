@@ -142,14 +142,14 @@ static int vmw_fb_check_var(struct fb_var_screeninfo *var,
 
 	if ((var->xoffset + var->xres) > par->max_width ||
 	    (var->yoffset + var->yres) > par->max_height) {
-		DRM_ERROR("Requested geom can not fit in framebuffer\n");
+		DRM_ERROR("Requested geom can not fit in framebuffer %d > %d || %d > %d\n", var->xoffset + var->xres, par->max_width, var->yoffset + var->yres, par->max_height);
 		return -EINVAL;
 	}
 
 	if (!vmw_kms_validate_mode_vram(vmw_priv,
 					var->xres * var->bits_per_pixel/8,
 					var->yoffset + var->yres)) {
-		DRM_ERROR("Requested geom can not fit in framebuffer\n");
+		DRM_ERROR("Requested geom %d,%d can not fit in framebuffer vmw_kms_validate_mode_vram\n", var->xres * var->bits_per_pixel/8, var->yoffset + var->yres);
 		return -EINVAL;
 	}
 
@@ -301,7 +301,7 @@ static int vmw_fb_pan_display(struct fb_var_screeninfo *var,
 
 	if ((var->xoffset + var->xres) > var->xres_virtual ||
 	    (var->yoffset + var->yres) > var->yres_virtual) {
-		DRM_ERROR("Requested panning can not fit in framebuffer\n");
+		DRM_ERROR("Requested panning can not fit in framebuffer %d > %d || %d > %d\n", var->xoffset + var->xres, var->xres_virtual, var->yoffset + var->yres, var->yres_virtual);
 		return -EINVAL;
 	}
 
