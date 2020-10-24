@@ -968,12 +968,13 @@ vmw_surface_handle_reference(struct vmw_private *dev_priv,
 					prime.base);
 
 		/*
-		 * Make sure the surface creator has the same
+		 * RELAXED FOR TEST: Make sure the surface creator has the same
 		 * authenticating master, or is already registered with us.
-		 */
+		 *
 		if (drm_is_primary_client(file_priv) &&
 		    user_srf->master != file_priv->master)
 			require_exist = true;
+		 */
 
 		ret = ttm_ref_object_add(tfile, base, TTM_REF_USAGE, NULL,
 					 require_exist);
