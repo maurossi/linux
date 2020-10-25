@@ -251,6 +251,8 @@ static const uint32_t vmw_primary_plane_formats[] = {
 	DRM_FORMAT_RGB888,
 	DRM_FORMAT_XRGB8888,
 	DRM_FORMAT_ARGB8888,
+	DRM_FORMAT_XBGR8888,
+	DRM_FORMAT_ABGR8888,
 };
 
 static const uint32_t vmw_cursor_plane_formats[] = {
