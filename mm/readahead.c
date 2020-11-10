@@ -22,6 +22,7 @@
 #include <linux/blk-cgroup.h>
 #include <linux/fadvise.h>
 #include <linux/sched/mm.h>
+#include <trace/hooks/mm.h>
 
 #include "internal.h"
 
@@ -112,6 +113,15 @@ int read_cache_pages(struct address_space *mapping, struct list_head *pages,
 }
 
 EXPORT_SYMBOL(read_cache_pages);
+
+gfp_t readahead_gfp_mask(struct address_space *x)
+{
+	gfp_t mask = mapping_gfp_mask(x) | __GFP_NORETRY | __GFP_NOWARN;
+
+	trace_android_rvh_set_readahead_gfp_mask(&mask);
+	return mask;
+}
+EXPORT_SYMBOL_GPL(readahead_gfp_mask);
 
 static void read_pages(struct readahead_control *rac, struct list_head *pages,
 		bool skip_page)
