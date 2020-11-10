@@ -13,7 +13,10 @@
 #include <trace/hooks/dtask.h>
 #include <trace/hooks/mpam.h>
 #include <trace/hooks/debug.h>
+#include <trace/hooks/mm.h>
 #include <trace/hooks/iommu.h>
+#include <trace/hooks/vmscan.h>
+#include <trace/hooks/syscall_check.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
@@ -51,6 +54,9 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_set_sugov_sched_attr);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_iowait);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_sugov_update);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_setaffinity);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_skip_swapcache_flags);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_gfp_zone_flags);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_readahead_gfp_mask);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_task_cpu);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_try_to_wake_up);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_try_to_wake_up_success);
@@ -84,6 +90,7 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_build_sched_domains);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_sched_balance_rt);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_pick_next_entity);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_check_preempt_wakeup);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_set_balance_anon_file_reclaim);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_free_task);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_enqueue_task);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_after_dequeue_task);
@@ -92,5 +99,6 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_entity);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_entity_tick);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_enqueue_task_fair);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_dequeue_task_fair);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_check_mmap_file);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_post_init_entity_util_avg);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_find_new_ilb);
