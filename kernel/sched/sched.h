@@ -1707,8 +1707,6 @@ enum numa_faults_stats {
 };
 extern void sched_setnuma(struct task_struct *p, int node);
 extern int migrate_task_to(struct task_struct *p, int cpu);
-extern int migrate_swap(struct task_struct *p, struct task_struct *t,
-			int cpu, int scpu);
 extern void init_numa_balancing(unsigned long clone_flags, struct task_struct *p);
 #else
 static inline void
@@ -1718,6 +1716,9 @@ init_numa_balancing(unsigned long clone_flags, struct task_struct *p)
 #endif /* CONFIG_NUMA_BALANCING */
 
 #ifdef CONFIG_SMP
+
+extern int migrate_swap(struct task_struct *p, struct task_struct *t,
+			int cpu, int scpu);
 
 static inline void
 queue_balance_callback(struct rq *rq,
