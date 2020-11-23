@@ -30,6 +30,7 @@
 #include <linux/syscore_ops.h>
 #include <linux/tick.h>
 #include <trace/events/power.h>
+#include <trace/hooks/cpufreq.h>
 
 static LIST_HEAD(cpufreq_policy_list);
 
@@ -389,6 +390,7 @@ static void cpufreq_notify_transition(struct cpufreq_policy *policy,
 		cpufreq_stats_record_transition(policy, freqs->new);
 		cpufreq_times_record_transition(policy, freqs->new);
 		policy->cur = freqs->new;
+		trace_android_rvh_cpufreq_transition(policy);
 	}
 }
 
@@ -694,12 +696,11 @@ static ssize_t show_cpuinfo_max_freq(struct cpufreq_policy *policy, char *buf)
 {
 	unsigned int max_freq = policy->cpuinfo.max_freq;
 
-	trace_android_vh_show_max_freq(policy, &max_freq);
+	trace_android_rvh_show_max_freq(policy, &max_freq);
 	return sprintf(buf, "%u\n", max_freq);
 }
 
 show_one(cpuinfo_min_freq, cpuinfo.min_freq);
-show_one(cpuinfo_max_freq, cpuinfo.max_freq);
 show_one(cpuinfo_transition_latency, cpuinfo.transition_latency);
 show_one(scaling_min_freq, min);
 show_one(scaling_max_freq, max);
@@ -2116,6 +2117,7 @@ unsigned int cpufreq_driver_fast_switch(struct cpufreq_policy *policy,
 	arch_set_freq_scale(policy->related_cpus, freq,
 			    policy->cpuinfo.max_freq);
 	cpufreq_stats_record_transition(policy, freq);
+	trace_android_rvh_cpufreq_transition(policy);
 
 	if (trace_cpu_frequency_enabled()) {
 		for_each_cpu(cpu, policy->cpus)
