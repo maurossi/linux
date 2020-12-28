@@ -21,6 +21,7 @@
 #include <trace/hooks/printk.h>
 #include <trace/hooks/epoch.h>
 #include <trace/hooks/preemptirq.h>
+#include <trace/hooks/ftrace_dump.h>
 
 /*
  * Export tracepoints that act as a bare tracehook (ie: have no trace event
@@ -80,3 +81,8 @@ EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_attach);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_rvh_cpu_cgroup_can_attach);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_map_util_freq);
 EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_em_cpu_energy);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_oops_enter);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_oops_exit);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_size_check);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_format_check);
+EXPORT_TRACEPOINT_SYMBOL_GPL(android_vh_ftrace_dump_buffer);
