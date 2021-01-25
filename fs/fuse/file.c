@@ -146,7 +146,7 @@ struct fuse_file *fuse_file_open(struct fuse_mount *fm, u64 nodeid,
 		if (!err) {
 			ff->fh = outarg.fh;
 			ff->open_flags = outarg.open_flags;
-
+			fuse_passthrough_setup(fc, ff, &outarg);
 		} else if (err != -ENOSYS) {
 			fuse_file_free(ff);
 			return ERR_PTR(err);
@@ -304,6 +304,8 @@ void fuse_file_release(struct inode *inode, struct fuse_file *ff,
 	struct fuse_inode *fi = get_fuse_inode(inode);
 	struct fuse_release_args *ra = ff->release_args;
 	int opcode = isdir ? FUSE_RELEASEDIR : FUSE_RELEASE;
+
+	fuse_passthrough_release(&ff->passthrough);
 
 	fuse_prepare_release(fi, ff, open_flags, opcode);
 
