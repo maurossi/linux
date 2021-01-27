@@ -1476,6 +1476,7 @@ struct task_struct {
 	int				mce_count;
 #endif
 	ANDROID_VENDOR_DATA_ARRAY(1, 64);
+	ANDROID_OEM_DATA_ARRAY(1, 2);
 
 #ifdef CONFIG_KRETPROBES
 	struct llist_head               kretprobe_instances;
