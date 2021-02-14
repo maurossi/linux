@@ -84,6 +84,10 @@ else
 KBUILD_CFLAGS += $(call cc-option,-fcf-protection=none)
 endif
 
+# Never want PIC in x86 kernel, prevent breakage with GCC built
+# with nonstandard options
+KBUILD_CFLAGS += -fno-pic
+
 ifeq ($(CONFIG_X86_32),y)
         BITS := 32
         UTS_MACHINE := i386
@@ -93,10 +97,6 @@ ifeq ($(CONFIG_X86_32),y)
         KBUILD_CFLAGS += -m32
 
         KBUILD_CFLAGS += -msoft-float -mregparm=3 -freg-struct-return
-
-        # Never want PIC in a 32-bit kernel, prevent breakage with GCC built
-        # with nonstandard options
-        KBUILD_CFLAGS += -fno-pic
 
         # Align the stack to the register width instead of using the default
         # alignment of 16 bytes. This reduces stack usage and the number of
