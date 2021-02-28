@@ -253,7 +253,7 @@ retry_deleg:
 		inode_lock(inode);
 		error = security_path_chown(&path, newattrs.ia_uid, newattrs.ia_gid);
 		if (!error)
-			error = notify_change2(path.mnt, path.dentry, &newattrs, &delegated_inode);
+			error = notify_change2(path.mnt, mnt_user_ns(path.mnt), path.dentry, &newattrs, &delegated_inode);
 		inode_unlock(inode);
 		if (delegated_inode) {
 			error = break_deleg_wait(&delegated_inode);
