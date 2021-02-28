@@ -212,4 +212,10 @@ config DELL_WMI_SYSMAN
 	  To compile this driver as a module, choose M here: the module will
 	  be called dell-wmi-sysman.
 
+config DV11P_TABLET
+	tristate "Dell Venue 11 Pro Tablet support"
+	depends on ACPI
+	---help---
+	  This driver provides power button support and docking events for the Dell Venue 11 Pro tablet.
+
 endif # X86_PLATFORM_DRIVERS_DELL
