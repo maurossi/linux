@@ -675,7 +675,7 @@ config S103T_WMI
 	tristate "Lenovo S10-3T Rotate Button Support"
 	depends on ACPI_WMI
 	depends on INPUT
-	---help---
+	help
 	  This is a driver for the Lenovo ideapad S10-3T rotate button.
 
 	  To compile this driver as a module, choose M here: the module will
