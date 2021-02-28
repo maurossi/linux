@@ -2920,9 +2920,19 @@ static inline int file_permission(struct file *file, int mask)
 	return inode_permission(file_mnt_user_ns(file),
 				file_inode(file), mask);
 }
+static inline int file_permission2(struct vfsmount *mnt, struct file *file, int mask)
+{
+	return inode_permission2(mnt, file_mnt_user_ns(file),
+				file_inode(file), mask);
+}
 static inline int path_permission(const struct path *path, int mask)
 {
 	return inode_permission(mnt_user_ns(path->mnt),
+				d_inode(path->dentry), mask);
+}
+static inline int path_permission2(struct vfsmount *mnt, const struct path *path, int mask)
+{
+	return inode_permission2(mnt, mnt_user_ns(path->mnt),
 				d_inode(path->dentry), mask);
 }
 int __check_sticky(struct user_namespace *mnt_userns, struct inode *dir,
