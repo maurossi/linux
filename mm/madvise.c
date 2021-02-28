@@ -68,13 +68,14 @@ static int madvise_need_mmap_write(int behavior)
  */
 static int madvise_update_vma(struct vm_area_struct *vma,
 			      struct vm_area_struct **prev, unsigned long start,
-			      unsigned long end, unsigned long new_flags)
+			      unsigned long end, unsigned long new_flags,
+			      const char __user *new_anon_name)
 {
 	struct mm_struct *mm = vma->vm_mm;
 	int error;
 	pgoff_t pgoff;
 
-	if (new_flags == vma->vm_flags) {
+	if (new_flags == vma->vm_flags && new_anon_name == vma_anon_name(vma)) {
 		*prev = vma;
 		return 0;
 	}
@@ -82,7 +83,7 @@ static int madvise_update_vma(struct vm_area_struct *vma,
 	pgoff = vma->vm_pgoff + ((start - vma->vm_start) >> PAGE_SHIFT);
 	*prev = vma_merge(mm, *prev, start, end, new_flags, vma->anon_vma,
 			  vma->vm_file, pgoff, vma_policy(vma),
-			  vma->vm_userfaultfd_ctx);
+			  vma->vm_userfaultfd_ctx, new_anon_name);
 	if (*prev) {
 		vma = *prev;
 		goto success;
@@ -115,8 +116,28 @@ success:
 	 * vm_flags is protected by the mmap_lock held in write mode.
 	 */
 	vma->vm_flags = new_flags;
+	if (!vma->vm_file)
+		vma->anon_name = new_anon_name;
 
 	return 0;
+}
+
+static int madvise_vma_anon_name(struct vm_area_struct *vma,
+				 struct vm_area_struct **prev,
+				 unsigned long start, unsigned long end,
+				 unsigned long name_addr)
+{
+	int error;
+
+	/* Only anonymous mappings can be named */
+	if (vma->vm_file)
+		return -EINVAL;
+
+	error = madvise_update_vma(vma, prev, start, end, vma->vm_flags,
+				   (const char __user *)name_addr);
+	if (error == -ENOMEM)
+		error = -EAGAIN;
+	return error;
 }
 
 #ifdef CONFIG_SWAP
@@ -945,7 +966,8 @@ static int madvise_vma_behavior(struct vm_area_struct *vma,
 		break;
 	}
 
-	error = madvise_update_vma(vma, prev, start, end, new_flags);
+	error = madvise_update_vma(vma, prev, start, end, new_flags,
+				   vma_anon_name(vma));
 
 out:
 	if (error == -ENOMEM)
@@ -1119,6 +1141,30 @@ int madvise_walk_vmas(unsigned long start, unsigned long end,
 	}
 
 	return unmapped_error;
+}
+
+int madvise_set_anon_name(unsigned long start, unsigned long len_in,
+			  unsigned long name_addr)
+{
+	unsigned long end;
+	unsigned long len;
+
+	if (start & ~PAGE_MASK)
+		return -EINVAL;
+	len = (len_in + ~PAGE_MASK) & PAGE_MASK;
+
+	/* Check to see whether len was rounded up from small -ve to zero */
+	if (len_in && !len)
+		return -EINVAL;
+
+	end = start + len;
+	if (end < start)
+		return -EINVAL;
+
+	if (end == start)
+		return 0;
+
+	return madvise_walk_vmas(start, end, name_addr, madvise_vma_anon_name);
 }
 
 /*
