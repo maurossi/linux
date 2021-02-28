@@ -45,7 +45,7 @@ void vma_interval_tree_insert_after(struct vm_area_struct *node,
 			parent->shared.rb_subtree_last = last;
 		while (parent->shared.rb.rb_left) {
 			parent = rb_entry(parent->shared.rb.rb_left,
-				struct vm_area_struct, shared.rb);
+					  struct vm_area_struct, shared.rb);
 			if (parent->shared.rb_subtree_last < last)
 				parent->shared.rb_subtree_last = last;
 		}
