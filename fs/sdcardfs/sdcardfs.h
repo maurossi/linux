@@ -554,7 +554,7 @@ static inline int prepare_dir(const char *path_s, uid_t uid, gid_t gid, mode_t m
 		goto out_unlock;
 	}
 
-	err = vfs_mkdir2(parent.mnt, d_inode(parent.dentry), dent, mode);
+	err = vfs_mkdir2(parent.mnt, mnt_user_ns(parent.mnt), d_inode(parent.dentry), dent, mode);
 	if (err) {
 		if (err == -EEXIST)
 			err = 0;
@@ -565,7 +565,7 @@ static inline int prepare_dir(const char *path_s, uid_t uid, gid_t gid, mode_t m
 	attrs.ia_gid = make_kgid(&init_user_ns, gid);
 	attrs.ia_valid = ATTR_UID | ATTR_GID;
 	inode_lock(d_inode(dent));
-	notify_change2(parent.mnt, dent, &attrs, NULL);
+	notify_change2(parent.mnt, mnt_user_ns(parent.mnt), dent, &attrs, NULL);
 	inode_unlock(d_inode(dent));
 
 out_dput:
