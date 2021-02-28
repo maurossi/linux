@@ -102,7 +102,7 @@ static int sdcardfs_create(struct inode *dir, struct dentry *dentry,
 	current->fs = copied_fs;
 	task_unlock(current);
 
-	err = vfs_create2(lower_dentry_mnt, d_inode(lower_parent_dentry), lower_dentry, mode, want_excl);
+	err = vfs_create2(lower_dentry_mnt, mnt_user_ns(lower_dentry_mnt), d_inode(lower_parent_dentry), lower_dentry, mode, want_excl);
 	if (err)
 		goto out;
 
@@ -154,7 +154,7 @@ static int sdcardfs_unlink(struct inode *dir, struct dentry *dentry)
 	dget(lower_dentry);
 	lower_dir_dentry = lock_parent(lower_dentry);
 
-	err = vfs_unlink2(lower_mnt, lower_dir_inode, lower_dentry, NULL);
+	err = vfs_unlink2(lower_mnt, mnt_user_ns(lower_mnt), lower_dir_inode, lower_dentry, NULL);
 
 	/*
 	 * Note: unlinking on top of NFS can cause silly-renamed files.
@@ -260,7 +260,7 @@ static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode
 	current->fs = copied_fs;
 	task_unlock(current);
 
-	err = vfs_mkdir2(lower_mnt, d_inode(lower_parent_dentry), lower_dentry, mode);
+	err = vfs_mkdir2(lower_mnt, mnt_user_ns(lower_mnt), d_inode(lower_parent_dentry), lower_dentry, mode);
 
 	if (err) {
 		unlock_dir(lower_parent_dentry);
@@ -369,7 +369,7 @@ static int sdcardfs_rmdir(struct inode *dir, struct dentry *dentry)
 	lower_mnt = lower_path.mnt;
 	lower_dir_dentry = lock_parent(lower_dentry);
 
-	err = vfs_rmdir2(lower_mnt, d_inode(lower_dir_dentry), lower_dentry);
+	err = vfs_rmdir2(lower_mnt, mnt_user_ns(lower_mnt), d_inode(lower_dir_dentry), lower_dentry);
 	if (err)
 		goto out;
 
@@ -397,6 +397,7 @@ static int sdcardfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			 unsigned int flags)
 {
 	int err = 0;
+	struct renamedata rd;
 	struct dentry *lower_old_dentry = NULL;
 	struct dentry *lower_new_dentry = NULL;
 	struct dentry *lower_old_dir_dentry = NULL;
@@ -441,10 +442,15 @@ static int sdcardfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 		goto out;
 	}
 
-	err = vfs_rename2(lower_mnt,
-			 d_inode(lower_old_dir_dentry), lower_old_dentry,
-			 d_inode(lower_new_dir_dentry), lower_new_dentry,
-			 NULL, 0);
+	rd.old_dir	   = d_inode(lower_old_dir_dentry);
+	rd.old_dentry	   = lower_old_dentry;
+	rd.old_mnt_userns  = mnt_user_ns(lower_old_path.mnt);
+	rd.new_dir	   = d_inode(lower_new_dir_dentry);
+	rd.new_dentry	   = lower_new_dentry;
+	rd.new_mnt_userns  = mnt_user_ns(lower_new_path.mnt);
+	rd.delegated_inode = NULL;
+	rd.flags	   = 0;
+	err = vfs_rename2(lower_mnt, &rd);
 	if (err)
 		goto out;
 
@@ -585,7 +591,7 @@ static int sdcardfs_permission(struct vfsmount *mnt, struct inode *inode, int ma
 	tmp.i_sb = inode->i_sb;
 	if (IS_POSIXACL(inode))
 		pr_warn("%s: This may be undefined behavior...\n", __func__);
-	err = generic_permission(&tmp, mask);
+	err = generic_permission(mnt_user_ns(mnt), &tmp, mask);
 	return err;
 }
 
@@ -650,7 +656,7 @@ static int sdcardfs_setattr(struct vfsmount *mnt, struct dentry *dentry, struct 
 	 * we have write access. Changes to mode, owner, and group are ignored
 	 */
 	ia->ia_valid |= ATTR_FORCE;
-	err = setattr_prepare(&tmp_d, ia);
+	err = setattr_prepare(mnt_user_ns(mnt), &tmp_d, ia);
 
 	if (!err) {
 		/* check the Android group ID */
@@ -709,7 +715,7 @@ static int sdcardfs_setattr(struct vfsmount *mnt, struct dentry *dentry, struct 
 	 * tries to open(), unlink(), then ftruncate() a file.
 	 */
 	inode_lock(d_inode(lower_dentry));
-	err = notify_change2(lower_mnt, lower_dentry, &lower_ia, /* note: lower_ia */
+	err = notify_change2(lower_mnt, mnt_user_ns(lower_mnt), lower_dentry, &lower_ia, /* note: lower_ia */
 			NULL);
 	inode_unlock(d_inode(lower_dentry));
 	if (err)
