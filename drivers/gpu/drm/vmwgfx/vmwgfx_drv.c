@@ -49,8 +49,8 @@
 
 #define VMWGFX_DRIVER_DESC "Linux drm driver for VMware graphics devices"
 
-#define VMW_MIN_INITIAL_WIDTH 1280
-#define VMW_MIN_INITIAL_HEIGHT 720
+#define VMW_MIN_INITIAL_WIDTH 800
+#define VMW_MIN_INITIAL_HEIGHT 600
 
 /*
  * Fully encoded drm commands. Might move to vmw_drm.h
