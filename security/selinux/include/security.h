@@ -98,6 +98,7 @@ struct selinux_state {
 	bool initialized;
 	bool policycap[__POLICYDB_CAP_MAX];
 	bool android_netlink_route;
+	bool android_netlink_getneigh;
 
 	struct page *status_page;
 	struct mutex status_lock;
@@ -232,6 +233,13 @@ static inline bool selinux_android_nlroute_getlink(void)
 	struct selinux_state *state = &selinux_state;
 
 	return state->android_netlink_route;
+}
+
+static inline bool selinux_android_nlroute_getneigh(void)
+{
+	struct selinux_state *state = &selinux_state;
+
+	return state->android_netlink_getneigh;
 }
 
 struct selinux_policy_convert_data;
