@@ -304,7 +304,7 @@ int notify_change2(struct vfsmount *mnt, struct user_namespace *mnt_userns, stru
 			return -EPERM;
 
 		if (!inode_owner_or_capable(mnt_userns, inode)) {
-			error = inode_permission(mnt_userns, inode, MAY_WRITE);
+			error = inode_permission2(mnt, mnt_userns, inode, MAY_WRITE);
 			if (error)
 				return error;
 		}
