@@ -1327,10 +1327,11 @@ static inline void gic_cpu_pm_init(void) { }
 #endif /* CONFIG_CPU_PM */
 
 #ifdef CONFIG_PM
-static void gic_resume(void)
+void gic_resume(void)
 {
 	trace_android_vh_gic_resume(gic_data.domain, gic_data.dist_base);
 }
+EXPORT_SYMBOL_GPL(gic_resume);
 
 static struct syscore_ops gic_syscore_ops = {
 	.resume = gic_resume,
@@ -1343,6 +1344,7 @@ static void gic_syscore_init(void)
 
 #else
 static inline void gic_syscore_init(void) { }
+void gic_resume(void) { }
 #endif
 
 
