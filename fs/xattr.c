@@ -133,7 +133,7 @@ xattr_permission(struct user_namespace *mnt_userns, struct inode *inode,
 			return -EPERM;
 	}
 
-	return inode_permission(mnt_userns, inode, mask);
+	return inode_permission2(ERR_PTR(-EOPNOTSUPP), mnt_userns, inode, mask);
 }
 
 /*
