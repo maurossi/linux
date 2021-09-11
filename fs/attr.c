@@ -249,7 +249,7 @@ void setattr_copy(struct user_namespace *mnt_userns, struct inode *inode,
 }
 EXPORT_SYMBOL(setattr_copy);
 
-int may_setattr(struct user_namespace *mnt_userns, struct inode *inode,
+int may_setattr2(struct vfsmount *mnt, struct user_namespace *mnt_userns, struct inode *inode,
 		unsigned int ia_valid)
 {
 	int error;
@@ -268,12 +268,19 @@ int may_setattr(struct user_namespace *mnt_userns, struct inode *inode,
 			return -EPERM;
 
 		if (!inode_owner_or_capable(mnt_userns, inode)) {
-			error = inode_permission(mnt_userns, inode, MAY_WRITE);
+			error = inode_permission2(mnt, mnt_userns, inode, MAY_WRITE);
 			if (error)
 				return error;
 		}
 	}
 	return 0;
+}
+EXPORT_SYMBOL(may_setattr2);
+
+int may_setattr(struct user_namespace *mnt_userns, struct inode *inode,
+		unsigned int ia_valid)
+{
+	return may_setattr2(NULL, mnt_userns, inode, ia_valid);
 }
 EXPORT_SYMBOL(may_setattr);
 
@@ -318,7 +325,7 @@ int notify_change2(struct vfsmount *mnt, struct user_namespace *mnt_userns, stru
 
 	WARN_ON_ONCE(!inode_is_locked(inode));
 
-	error = may_setattr(mnt_userns, inode, ia_valid);
+	error = may_setattr2(mnt, mnt_userns, inode, ia_valid);
 	if (error)
 		return error;
 
