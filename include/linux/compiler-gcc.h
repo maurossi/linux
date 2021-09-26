@@ -93,8 +93,10 @@
 
 #if GCC_VERSION >= 70000
 #define KASAN_ABI_VERSION 5
-#else
+#elif GCC_VERSION >= 50000
 #define KASAN_ABI_VERSION 4
+#elif GCC_VERSION >= 40902
+#define KASAN_ABI_VERSION 3
 #endif
 
 #if __has_attribute(__no_sanitize_address__)
@@ -119,6 +121,10 @@
 #define __no_sanitize_coverage __attribute__((no_sanitize_coverage))
 #else
 #define __no_sanitize_coverage
+#endif
+
+#if GCC_VERSION >= 50100
+#define COMPILER_HAS_GENERIC_BUILTIN_OVERFLOW 1
 #endif
 
 /*
