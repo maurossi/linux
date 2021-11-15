@@ -86,7 +86,7 @@ __pu_failed:							\
 		"1:	" op "%U1%X1 %0,%1	# put_user\n"	\
 		EX_TABLE(1b, %l2)				\
 		:						\
-		: "r" (x), "m<>" (*addr)		\
+		: "r" (x), "m"UPD_CONSTR (*addr)		\
 		:						\
 		: label)
 
@@ -143,7 +143,7 @@ do {								\
 		"1:	"op"%U1%X1 %0, %1	# get_user\n"	\
 		EX_TABLE(1b, %l2)				\
 		: "=r" (x)					\
-		: "m<>" (*addr)				\
+		: "m"UPD_CONSTR (*addr)				\
 		:						\
 		: label)
 
@@ -200,7 +200,7 @@ __gus_failed:								\
 		".previous\n"				\
 		EX_TABLE(1b, 3b)			\
 		: "=r" (err), "=r" (x)			\
-		: "m<>" (*addr), "i" (-EFAULT), "0" (err))
+		: "m"UPD_CONSTR (*addr), "i" (-EFAULT), "0" (err))
 
 #ifdef __powerpc64__
 #define __get_user_asm2(x, addr, err)			\
