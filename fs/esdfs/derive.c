@@ -73,7 +73,7 @@ void esdfs_derive_perms(struct dentry *dentry)
 {
 	struct esdfs_inode_info *inode_i = ESDFS_I(dentry->d_inode);
 	bool is_root;
-	int ret;
+	int __maybe_unused ret;
 	kuid_t appid;
 	struct qstr q_Download = QSTR_LITERAL("Download");
 	struct qstr q_Android = QSTR_LITERAL("Android");

@@ -378,7 +378,7 @@ out:
 /*
  * Wrapfs read_iter, redirect modified iocb to lower read_iter
  */
-ssize_t
+static ssize_t
 esdfs_read_iter(struct kiocb *iocb, struct iov_iter *iter)
 {
 	int err;
@@ -406,7 +406,7 @@ out:
 /*
  * Wrapfs write_iter, redirect modified iocb to lower write_iter
  */
-ssize_t
+static ssize_t
 esdfs_write_iter(struct kiocb *iocb, struct iov_iter *iter)
 {
 	int err;
