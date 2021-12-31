@@ -1852,6 +1852,8 @@ static void handle_device_notification(struct xhci_hcd *xhci,
 {
 	u32 slot_id;
 	struct usb_device *udev;
+	u32 type;
+	u32 dn;
 
 	slot_id = TRB_TO_SLOT_ID(le32_to_cpu(event->generic.field[3]));
 	if (!xhci->devs[slot_id]) {
@@ -1860,11 +1862,45 @@ static void handle_device_notification(struct xhci_hcd *xhci,
 		return;
 	}
 
-	xhci_dbg(xhci, "Device Wake Notification event for slot ID %u\n",
-			slot_id);
 	udev = xhci->devs[slot_id]->udev;
-	if (udev && udev->parent)
-		usb_wakeup_notification(udev->parent, udev->portnum);
+	type = TRB_DN_TYPE(le32_to_cpu(event->generic.field[0]));
+
+	switch (type) {
+	case TRB_DN_TYPE_FUNC_WAKE:
+		xhci_info(xhci, "Device Wake Notification event for slot ID %u\n",
+			  slot_id);
+		if (udev && udev->parent)
+			usb_wakeup_notification(udev->parent, udev->portnum);
+		break;
+	case TRB_DN_TYPE_SUBLINK_SPEED:
+		if (!udev)
+			break;
+
+		dn = le32_to_cpu(event->generic.field[1]);
+		udev->ssp_rate = USB_SSP_GEN_UNKNOWN;
+
+		if (TRB_DN_SUBLINK_SPEED_LP(dn) ==
+		    TRB_DN_SUBLINK_SPEED_LP_SSP) {
+			udev->speed = USB_SPEED_SUPER_PLUS;
+
+			if (TRB_DN_SUBLINK_SPEED_LSE(dn) !=
+			    TRB_DN_SUBLINK_SPEED_LSE_GBPS)
+				break;
+
+			if (TRB_DN_SUBLINK_SPEED_LSM(dn) == 10) {
+				if (TRB_DN_SUBLINK_SPEED_LANES(dn))
+					udev->ssp_rate = USB_SSP_GEN_2x2;
+				else
+					udev->ssp_rate = USB_SSP_GEN_2x1;
+			} else if (TRB_DN_SUBLINK_SPEED_LSM(dn) == 5) {
+				if (TRB_DN_SUBLINK_SPEED_LANES(dn))
+					udev->ssp_rate = USB_SSP_GEN_1x2;
+			}
+		} else {
+			udev->speed = USB_SPEED_SUPER;
+		}
+		break;
+	}
 }
 
 /*

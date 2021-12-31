@@ -2564,7 +2564,7 @@ int xhci_mem_init(struct xhci_hcd *xhci, gfp_t flags)
 	 */
 	temp = readl(&xhci->op_regs->dev_notification);
 	temp &= ~DEV_NOTE_MASK;
-	temp |= DEV_NOTE_FWAKE;
+	temp |= DEV_NOTE_FWAKE | DEV_NOTE_SUBLINK_SPEED;
 	writel(temp, &xhci->op_regs->dev_notification);
 
 	return 0;

@@ -269,6 +269,7 @@ struct xhci_op_regs {
  * SW does need to pay attention to function wake notifications.
  */
 #define	DEV_NOTE_FWAKE		ENABLE_DEV_NOTE(1)
+#define	DEV_NOTE_SUBLINK_SPEED	ENABLE_DEV_NOTE(5)
 
 /* CRCR - Command Ring Control Register - cmd_ring bitmasks */
 /* bit 0 is the command ring cycle state */
@@ -1430,6 +1431,30 @@ union xhci_trb {
 #define	TRB_NEC_CMD_COMP	48
 /* Get NEC firmware revision. */
 #define	TRB_NEC_GET_FW		49
+
+/* Get Device Notification type */
+#define TRB_DN_TYPE(p)			(((p) >> 4) & 0xf)
+
+#define TRB_DN_TYPE_FUNC_WAKE		1
+#define TRB_DN_TYPE_SUBLINK_SPEED	5
+
+/* Get sublink speed attributes */
+#define TRB_DN_SUBLINK_SPEED_LSE(p)	(((p) >> 4) & 0x3)
+#define TRB_DN_SUBLINK_SPEED_LSE_BPS	0
+#define TRB_DN_SUBLINK_SPEED_LSE_KBPS	1
+#define TRB_DN_SUBLINK_SPEED_LSE_MBPS	2
+#define TRB_DN_SUBLINK_SPEED_LSE_GBPS	3
+#define TRB_DN_SUBLINK_SPEED_ST(p)	(((p) >> 6) & 0x3)
+#define TRB_DN_SUBLINK_SPEED_LANES(p)	(((p) >> 10) & 0xf)
+#define TRB_DN_SUBLINK_SPEED_LP(p)	(((p) >> 14) & 0x3)
+#define TRB_DN_SUBLINK_SPEED_LP_SS	0
+#define TRB_DN_SUBLINK_SPEED_LP_SSP	1
+#define TRB_DN_SUBLINK_SPEED_LSM(p)	(((p) >> 16) & 0xffff)
+
+#define TRB_DN_SUBLINK_SPEED_IS_SYMMETRIC(p) \
+	(!(TRB_DN_SUBLINK_SPEED_ST(p) & BIT(0)))
+#define TRB_DN_SUBLINK_SPEED_IS_TX(p) \
+	(!!(TRB_DN_SUBLINK_SPEED_ST(p) & BIT(1)))
 
 static inline const char *xhci_trb_type_string(u8 type)
 {
