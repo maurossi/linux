@@ -30,11 +30,9 @@ $(obj)/vmlinux.bin: vmlinux FORCE
 
 suffix-$(CONFIG_KERNEL_GZIP)    := gzip
 suffix-$(CONFIG_KERNEL_LZO)     := lzo
-compress-$(CONFIG_KERNEL_GZIP)  := gzip
-compress-$(CONFIG_KERNEL_LZO)   := lzo_with_size
 
 $(obj)/vmlinux.bin.$(suffix-y): $(obj)/vmlinux.bin FORCE
-	$(call if_changed,$(compress-y))
+	$(call if_changed,$(suffix-y))
 
 LDFLAGS_piggy.o := -r --format binary --oformat elf32-h8300-linux -T
 OBJCOPYFLAGS := -O binary
