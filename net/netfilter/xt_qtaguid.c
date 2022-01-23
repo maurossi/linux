@@ -597,7 +597,7 @@ static void put_tag_ref_tree(tag_t full_tag, struct uid_tag_data *utd_entry)
 static ssize_t read_proc_u64(struct file *file, char __user *buf,
 			 size_t size, loff_t *ppos)
 {
-	uint64_t *valuep = PDE_DATA(file_inode(file));
+	uint64_t *valuep = pde_data(file_inode(file));
 	char tmp[24];
 	size_t tmp_size;
 
@@ -608,7 +608,7 @@ static ssize_t read_proc_u64(struct file *file, char __user *buf,
 static ssize_t read_proc_bool(struct file *file, char __user *buf,
 			  size_t size, loff_t *ppos)
 {
-	bool *valuep = PDE_DATA(file_inode(file));
+	bool *valuep = pde_data(file_inode(file));
 	char tmp[24];
 	size_t tmp_size;
 
@@ -1495,7 +1495,7 @@ static int proc_iface_stat_fmt_open(struct inode *inode, struct file *file)
 	if (!s)
 		return -ENOMEM;
 
-	s->fmt = (uintptr_t)PDE_DATA(inode);
+	s->fmt = (uintptr_t)pde_data(inode);
 	return 0;
 }
 
