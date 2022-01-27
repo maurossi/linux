@@ -1252,6 +1252,8 @@ void fuse_send_init(struct fuse_mount *fm)
 	if (fm->fc->auto_submounts)
 		flags |= FUSE_SUBMOUNTS;
 
+	flags |= FUSE_PASSTHROUGH;
+
 	ia->in.flags = flags;
 	ia->in.flags2 = flags >> 32;
 
