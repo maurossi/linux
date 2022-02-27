@@ -3,15 +3,14 @@
 #
 # A depmod wrapper used by the toplevel Makefile
 
-if test $# -ne 2 -a $# -ne 3; then
-	echo "Usage: $0 /sbin/depmod <kernelrelease> [System.map folder]" >&2
+if test $# -ne 2; then
+	echo "Usage: $0 /sbin/depmod <kernelrelease>" >&2
 	exit 1
 fi
 DEPMOD=$1
 KERNELRELEASE=$2
-KBUILD_MIXED_TREE=$3
 
-if ! test -r ${KBUILD_MIXED_TREE}System.map ; then
+if ! test -r System.map ; then
 	echo "Warning: modules_install: missing 'System.map' file. Skipping depmod." >&2
 	exit 0
 fi
@@ -42,7 +41,7 @@ if $depmod_hack_needed; then
 	KERNELRELEASE=99.98.$KERNELRELEASE
 fi
 
-set -- -ae -F ${KBUILD_MIXED_TREE}System.map
+set -- -ae -F System.map
 if test -n "$INSTALL_MOD_PATH"; then
 	set -- "$@" -b "$INSTALL_MOD_PATH"
 fi
