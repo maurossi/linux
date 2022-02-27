@@ -44,8 +44,6 @@ include $(srctree)/scripts/Kbuild.include
 # for mod-prelink-ext
 include $(srctree)/scripts/Makefile.lib
 
-mixed-build-prefix = $(if $(KBUILD_MIXED_TREE),$(KBUILD_MIXED_TREE)/)
-
 MODPOST = scripts/mod/modpost								\
 	$(if $(CONFIG_MODVERSIONS),-m)							\
 	$(if $(CONFIG_MODULE_SRCVERSION_ALL),-a)					\
@@ -66,17 +64,17 @@ else
 
 ifeq ($(KBUILD_EXTMOD),)
 
-input-symdump := $(mixed-build-prefix)vmlinux.symvers
+input-symdump := vmlinux.symvers
 output-symdump := modules-only.symvers
 module_srcpath := $(srctree)
 
 quiet_cmd_cat = GEN     $@
       cmd_cat = cat $(real-prereqs) > $@
 
-ifneq ($(wildcard $(mixed-build-prefix)vmlinux.symvers),)
+ifneq ($(wildcard vmlinux.symvers),)
 
 __modpost: Module.symvers
-Module.symvers: $(mixed-build-prefix)vmlinux.symvers modules-only.symvers FORCE
+Module.symvers: vmlinux.symvers modules-only.symvers FORCE
 	$(call if_changed,cat)
 
 targets += Module.symvers
