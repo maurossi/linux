@@ -9,7 +9,6 @@
 
 #include <linux/types.h>
 
-#include <linux/tracepoint.h>
 #include <trace/hooks/vendor_hooks.h>
 /*
 
