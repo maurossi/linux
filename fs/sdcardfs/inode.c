@@ -59,8 +59,7 @@ void revert_fsids(const struct cred *old_cred)
 	put_cred(cur_cred);
 }
 
-static int sdcardfs_create(struct user_namespace *user_ns,
-			 struct inode *dir, struct dentry *dentry,
+static int sdcardfs_create(struct inode *dir, struct dentry *dentry,
 			 umode_t mode, bool want_excl)
 {
 	int err;
@@ -103,7 +102,7 @@ static int sdcardfs_create(struct user_namespace *user_ns,
 	current->fs = copied_fs;
 	task_unlock(current);
 
-	err = vfs_create2(lower_dentry_mnt, user_ns, d_inode(lower_parent_dentry), lower_dentry, mode, want_excl);
+	err = vfs_create2(lower_dentry_mnt, mnt_user_ns(lower_dentry_mnt), d_inode(lower_parent_dentry), lower_dentry, mode, want_excl);
 	if (err)
 		goto out;
 
@@ -200,8 +199,7 @@ static int touch(char *abs_path, mode_t mode)
 	return 0;
 }
 
-static int sdcardfs_mkdir(struct user_namespace *user_ns,
-			   struct inode *dir, struct dentry *dentry, umode_t mode)
+static int sdcardfs_mkdir(struct inode *dir, struct dentry *dentry, umode_t mode)
 {
 	int err;
 	int make_nomedia_in_obb = 0;
@@ -262,7 +260,7 @@ static int sdcardfs_mkdir(struct user_namespace *user_ns,
 	current->fs = copied_fs;
 	task_unlock(current);
 
-	err = vfs_mkdir2(lower_mnt, user_ns, d_inode(lower_parent_dentry), lower_dentry, mode);
+	err = vfs_mkdir2(lower_mnt, mnt_user_ns(lower_mnt), d_inode(lower_parent_dentry), lower_dentry, mode);
 
 	if (err) {
 		unlock_dir(lower_parent_dentry);
@@ -394,8 +392,7 @@ out_eacces:
  * The locking rules in sdcardfs_rename are complex.  We could use a simpler
  * superblock-level name-space lock for renames and copy-ups.
  */
-static int sdcardfs_rename(struct user_namespace *user_ns,
-			 struct inode *old_dir, struct dentry *old_dentry,
+static int sdcardfs_rename(struct inode *old_dir, struct dentry *old_dentry,
 			 struct inode *new_dir, struct dentry *new_dentry,
 			 unsigned int flags)
 {
@@ -481,8 +478,7 @@ out_eacces:
 }
 
 #if 0
-static int sdcardfs_readlink(struct user_namespace *user_ns,
-			      struct dentry *dentry, char __user *buf, int bufsiz)
+static int sdcardfs_readlink(struct dentry *dentry, char __user *buf, int bufsiz)
 {
 	int err;
 	struct dentry *lower_dentry;
@@ -510,8 +506,7 @@ out:
 #endif
 
 #if 0
-static const char *sdcardfs_follow_link(struct user_namespace *user_ns,
-					 struct dentry *dentry, void **cookie)
+static const char *sdcardfs_follow_link(struct dentry *dentry, void **cookie)
 {
 	char *buf;
 	int len = PAGE_SIZE, err;
@@ -539,8 +534,7 @@ static const char *sdcardfs_follow_link(struct user_namespace *user_ns,
 }
 #endif
 
-static int sdcardfs_permission_wrn(struct user_namespace *user_ns,
-				    struct inode *inode, int mask)
+static int sdcardfs_permission_wrn(struct inode *inode, int mask)
 {
 	WARN_RATELIMIT(1, "sdcardfs does not support permission. Use permission2.\n");
 	return -EINVAL;
@@ -565,8 +559,7 @@ void copy_attrs(struct inode *dest, const struct inode *src)
 #endif
 }
 
-static int sdcardfs_permission(struct vfsmount *mnt, struct user_namespace *user_ns,
-				struct inode *inode, int mask)
+static int sdcardfs_permission(struct vfsmount *mnt, struct inode *inode, int mask)
 {
 	int err;
 	struct inode tmp;
@@ -598,19 +591,17 @@ static int sdcardfs_permission(struct vfsmount *mnt, struct user_namespace *user
 	tmp.i_sb = inode->i_sb;
 	if (IS_POSIXACL(inode))
 		pr_warn("%s: This may be undefined behavior...\n", __func__);
-	err = generic_permission(user_ns, &tmp, mask);
+	err = generic_permission(mnt_user_ns(mnt), &tmp, mask);
 	return err;
 }
 
-static int sdcardfs_setattr_wrn(struct user_namespace *user_ns,
-				 struct dentry *dentry, struct iattr *ia)
+static int sdcardfs_setattr_wrn(struct dentry *dentry, struct iattr *ia)
 {
 	WARN_RATELIMIT(1, "sdcardfs does not support setattr. User setattr2.\n");
 	return -EINVAL;
 }
 
-static int sdcardfs_setattr(struct vfsmount *mnt, struct user_namespace *user_ns,
-			     struct dentry *dentry, struct iattr *ia)
+static int sdcardfs_setattr(struct vfsmount *mnt, struct dentry *dentry, struct iattr *ia)
 {
 	int err;
 	struct dentry *lower_dentry;
@@ -665,7 +656,7 @@ static int sdcardfs_setattr(struct vfsmount *mnt, struct user_namespace *user_ns
 	 * we have write access. Changes to mode, owner, and group are ignored
 	 */
 	ia->ia_valid |= ATTR_FORCE;
-	err = setattr_prepare(user_ns, &tmp_d, ia);
+	err = setattr_prepare(mnt_user_ns(mnt), &tmp_d, ia);
 
 	if (!err) {
 		/* check the Android group ID */
@@ -746,8 +737,7 @@ out_err:
 	return err;
 }
 
-static int sdcardfs_fillattr(struct user_namespace *user_ns,
-				struct vfsmount *mnt, struct inode *inode,
+static int sdcardfs_fillattr(struct vfsmount *mnt, struct inode *inode,
 				struct kstat *lower_stat, struct kstat *stat)
 {
 	struct sdcardfs_inode_info *info = SDCARDFS_I(inode);
@@ -773,8 +763,7 @@ static int sdcardfs_fillattr(struct user_namespace *user_ns,
 	data_put(top);
 	return 0;
 }
-static int sdcardfs_getattr(struct user_namespace *user_ns,
-				const struct path *path, struct kstat *stat,
+static int sdcardfs_getattr(const struct path *path, struct kstat *stat,
 				u32 request_mask, unsigned int flags)
 {
 	struct vfsmount *mnt = path->mnt;
@@ -797,7 +786,7 @@ static int sdcardfs_getattr(struct user_namespace *user_ns,
 		goto out;
 	sdcardfs_copy_and_fix_attrs(d_inode(dentry),
 			      d_inode(lower_path.dentry));
-	err = sdcardfs_fillattr(user_ns, mnt, d_inode(dentry), &lower_stat, stat);
+	err = sdcardfs_fillattr(mnt, d_inode(dentry), &lower_stat, stat);
 out:
 	sdcardfs_put_lower_path(dentry, &lower_path);
 	return err;
