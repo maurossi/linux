@@ -36,6 +36,8 @@ source "drivers/staging/nvec/Kconfig"
 
 source "drivers/staging/media/Kconfig"
 
+source "drivers/staging/android/Kconfig"
+
 source "drivers/staging/fbtft/Kconfig"
 
 source "drivers/staging/most/Kconfig"
