@@ -346,6 +346,8 @@ do {									\
 #define __get_user_size(x, ptr, size, retval)				\
 do {									\
 	unsigned char x_u8__;						\
+	unsigned short x_u16__;						\
+	unsigned int x_u32__;						\
 									\
 	retval = 0;							\
 	__chk_user_ptr(ptr);						\
@@ -355,10 +357,12 @@ do {									\
 		(x) = x_u8__;						\
 		break;							\
 	case 2:								\
-		__get_user_asm(x, ptr, retval, "w");			\
+		__get_user_asm(x_u16__, ptr, retval, "w");              \
+		(x) = x_u16__;                                          \
 		break;							\
 	case 4:								\
-		__get_user_asm(x, ptr, retval, "l");			\
+		__get_user_asm(x_u32__, ptr, retval, "l");              \
+		(x) = x_u32__;                                          \
 		break;							\
 	case 8:								\
 		__get_user_asm_u64(x, ptr, retval);			\
