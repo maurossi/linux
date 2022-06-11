@@ -93,7 +93,7 @@ long vfs_truncate(const struct path *path, loff_t length)
 		goto out;
 
 	mnt_userns = mnt_user_ns(path->mnt);
-	error = inode_permission(mnt_userns, inode, MAY_WRITE);
+	error = inode_permission2(mnt, mnt_userns, inode, MAY_WRITE);
 	if (error)
 		goto mnt_drop_write_and_out;
 
@@ -429,6 +429,7 @@ static long do_faccessat(int dfd, const char __user *filename, int mode, int fla
 {
 	struct path path;
 	struct inode *inode;
+	struct vfsmount *mnt;
 	int res;
 	unsigned int lookup_flags = LOOKUP_FOLLOW;
 	const struct cred *old_cred = NULL;
@@ -456,6 +457,7 @@ retry:
 		goto out;
 
 	inode = d_backing_inode(path.dentry);
+	mnt = path.mnt;
 
 	if ((mode & MAY_EXEC) && S_ISREG(inode->i_mode)) {
 		/*
@@ -467,7 +469,7 @@ retry:
 			goto out_path_release;
 	}
 
-	res = inode_permission(mnt_user_ns(path.mnt), inode, mode | MAY_ACCESS);
+	res = inode_permission2(mnt, mnt_user_ns(path.mnt), inode, mode | MAY_ACCESS);
 	/* SuS v2 requires we report a read only fs too */
 	if (res || !(mode & S_IWOTH) || special_file(inode->i_mode))
 		goto out_path_release;
@@ -523,7 +525,7 @@ retry:
 	if (error)
 		goto out;
 
-	error = path_permission(&path, MAY_EXEC | MAY_CHDIR);
+	error = inode_permission2(path.mnt, path.dentry->d_inode, MAY_EXEC | MAY_CHDIR);
 	if (error)
 		goto dput_and_out;
 
@@ -552,7 +554,8 @@ SYSCALL_DEFINE1(fchdir, unsigned int, fd)
 	if (!d_can_lookup(f.file->f_path.dentry))
 		goto out_putf;
 
-	error = file_permission(f.file, MAY_EXEC | MAY_CHDIR);
+	error = inode_permission2(f.file->f_path.mnt, file_inode(f.file),
+				MAY_EXEC | MAY_CHDIR);
 	if (!error)
 		set_fs_pwd(current->fs, &f.file->f_path);
 out_putf:
@@ -571,7 +574,7 @@ retry:
 	if (error)
 		goto out;
 
-	error = path_permission(&path, MAY_EXEC | MAY_CHDIR);
+	error = inode_permission2(path.mnt, path.dentry->d_inode, MAY_EXEC | MAY_CHDIR);
 	if (error)
 		goto dput_and_out;
 
