@@ -2157,6 +2157,7 @@ struct inode_operations {
 			struct inode *, struct dentry *, unsigned int);
 	int (*setattr) (struct user_namespace *, struct dentry *,
 			struct iattr *);
+	int (*setattr2) (struct vfsmount *, struct user_namespace *, struct dentry *, struct iattr *);
 	int (*getattr) (struct user_namespace *, const struct path *,
 			struct kstat *, u32, unsigned int);
 	ssize_t (*listxattr) (struct dentry *, char *, size_t);
@@ -2744,6 +2745,8 @@ static inline bool is_idmapped_mnt(const struct vfsmount *mnt)
 extern long vfs_truncate(const struct path *, loff_t);
 int do_truncate(struct user_namespace *, struct dentry *, loff_t start,
 		unsigned int time_attrs, struct file *filp);
+extern int do_truncate2(struct vfsmount *, struct user_namespace *, struct dentry *, loff_t start,
+			unsigned int time_attrs, struct file *filp);
 extern int vfs_fallocate(struct file *file, int mode, loff_t offset,
 			loff_t len);
 extern long do_sys_open(int dfd, const char __user *filename, int flags,
@@ -2890,6 +2893,8 @@ static inline int bmap(struct inode *inode,  sector_t *block)
 
 int notify_change(struct user_namespace *, struct dentry *,
 		  struct iattr *, struct inode **);
+extern int notify_change2(struct vfsmount *, struct user_namespace *, struct dentry *,
+			struct iattr *, struct inode **);
 int inode_permission(struct user_namespace *, struct inode *, int);
 int generic_permission(struct user_namespace *, struct inode *, int);
 static inline int file_permission(struct file *file, int mask)
