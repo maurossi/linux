@@ -1,6 +1,13 @@
 # SPDX-License-Identifier: GPL-2.0
 menu "Android"
 
+config ANDROID
+	bool "Android Drivers"
+	help
+	  Enable support for various drivers needed on the Android platform
+
+if ANDROID
+
 config ANDROID_BINDER_IPC
 	bool "Android Binder IPC Driver"
 	depends on MMU
@@ -60,5 +67,7 @@ config ANDROID_BINDER_ALLOC_KUNIT_TEST
 	  Each test case runs using a pared-down binder_alloc struct and
 	  test-specific freelist, which allows this KUnit module to be loaded
 	  for testing without interfering with a running system.
+
+endif # if ANDROID
 
 endmenu
