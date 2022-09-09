@@ -96,7 +96,10 @@ ifeq ($(CONFIG_X86_32),y)
         KBUILD_AFLAGS += -m32
         KBUILD_CFLAGS += -m32
 
-        KBUILD_CFLAGS += -msoft-float -mregparm=3 -freg-struct-return
+        KBUILD_CFLAGS += -msoft-float -mregparm=3
+        ifdef CONFIG_CC_IS_GCC
+            KBUILD_CFLAGS += -freg-struct-return
+        endif
 
         # Align the stack to the register width instead of using the default
         # alignment of 16 bytes. This reduces stack usage and the number of
