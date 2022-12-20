@@ -23,8 +23,6 @@
  *
  */
 
-#include <linux/slab.h>
-
 #include "dce/dce_6_0_d.h"
 #include "dce/dce_6_0_sh_mask.h"
 
