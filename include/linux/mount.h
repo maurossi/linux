@@ -72,6 +72,7 @@ struct vfsmount {
 	struct super_block *mnt_sb;	/* pointer to superblock */
 	int mnt_flags;
 	struct mnt_idmap *mnt_idmap;
+	void *data;
 } __randomize_layout;
 
 struct user_namespace *mnt_user_ns(const struct vfsmount *mnt);
