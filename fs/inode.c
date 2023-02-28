@@ -2156,7 +2156,7 @@ int dentry_needs_remove_privs(struct mnt_idmap *idmap,
 	return mask;
 }
 
-static int __remove_privs(struct mnt_idmap *idmap,
+static int __remove_privs(struct vfsmount *mnt, struct mnt_idmap *idmap,
 			  struct dentry *dentry, int kill)
 {
 	struct iattr newattrs;
@@ -2166,7 +2166,7 @@ static int __remove_privs(struct mnt_idmap *idmap,
 	 * Note we call this on write, so notify_change will not
 	 * encounter any conflicting delegations:
 	 */
-	return notify_change(idmap, dentry, &newattrs, NULL);
+	return notify_change2(mnt, idmap, dentry, &newattrs, NULL);
 }
 
 int file_remove_privs_flags(struct file *file, unsigned int flags)
@@ -2187,7 +2187,7 @@ int file_remove_privs_flags(struct file *file, unsigned int flags)
 		if (flags & IOCB_NOWAIT)
 			return -EAGAIN;
 
-		error = __remove_privs(file_mnt_idmap(file), dentry, kill);
+		error = __remove_privs(file->f_path.mnt, file_mnt_idmap(file), dentry, kill);
 	}
 
 	if (!error)
