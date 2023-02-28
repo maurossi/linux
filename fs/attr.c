@@ -376,7 +376,7 @@ EXPORT_SYMBOL(may_setattr);
  * permissions. On non-idmapped mounts or if permission checking is to be
  * performed on the raw inode simply pass @nop_mnt_idmap.
  */
-int notify_change(struct mnt_idmap *idmap, struct dentry *dentry,
+int notify_change2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct dentry *dentry,
 		  struct iattr *attr, struct inode **delegated_inode)
 {
 	struct inode *inode = dentry->d_inode;
@@ -493,7 +493,9 @@ int notify_change(struct mnt_idmap *idmap, struct dentry *dentry,
 	if (error)
 		return error;
 
-	if (inode->i_op->setattr)
+	if (mnt && inode->i_op->setattr2)
+		error = inode->i_op->setattr2(mnt, idmap, dentry, attr);
+	else if (inode->i_op->setattr)
 		error = inode->i_op->setattr(idmap, dentry, attr);
 	else
 		error = simple_setattr(idmap, dentry, attr);
@@ -504,5 +506,11 @@ int notify_change(struct mnt_idmap *idmap, struct dentry *dentry,
 	}
 
 	return error;
+}
+EXPORT_SYMBOL(notify_change2);
+
+int notify_change(struct mnt_idmap *idmap, struct dentry * dentry, struct iattr * attr, struct inode **delegated_inode)
+{
+	return notify_change2(NULL, idmap, dentry, attr, delegated_inode);
 }
 EXPORT_SYMBOL(notify_change);
