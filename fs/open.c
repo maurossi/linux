@@ -36,7 +36,7 @@
 
 #include "internal.h"
 
-int do_truncate(struct mnt_idmap *idmap, struct dentry *dentry,
+int do_truncate2(struct vfsmount *mnt,  struct mnt_idmap *idmap, struct dentry *dentry,
 		loff_t length, unsigned int time_attrs, struct file *filp)
 {
 	int ret;
@@ -62,18 +62,25 @@ int do_truncate(struct mnt_idmap *idmap, struct dentry *dentry,
 
 	inode_lock(dentry->d_inode);
 	/* Note any delegations or leases have already been broken: */
-	ret = notify_change(idmap, dentry, &newattrs, NULL);
+	ret = notify_change2(mnt, idmap, dentry, &newattrs, NULL);
 	inode_unlock(dentry->d_inode);
 	return ret;
+}
+int do_truncate(struct mnt_idmap *idmap, struct dentry *dentry, loff_t length, unsigned int time_attrs,
+	struct file *filp)
+{
+	return do_truncate2(NULL, idmap, dentry, length, time_attrs, filp);
 }
 
 long vfs_truncate(const struct path *path, loff_t length)
 {
 	struct mnt_idmap *idmap;
 	struct inode *inode;
+	struct vfsmount *mnt;
 	long error;
 
 	inode = path->dentry->d_inode;
+	mnt = path->mnt;
 
 	/* For directories it's -EISDIR, for other non-regulars - -EINVAL */
 	if (S_ISDIR(inode->i_mode))
@@ -108,7 +115,7 @@ long vfs_truncate(const struct path *path, loff_t length)
 
 	error = security_path_truncate(path);
 	if (!error)
-		error = do_truncate(idmap, path->dentry, length, 0, NULL);
+		error = do_truncate2(mnt, idmap, path->dentry, length, 0, NULL);
 
 put_write_and_out:
 	put_write_access(inode);
@@ -157,6 +164,7 @@ long do_ftruncate(struct file *file, loff_t length, int small)
 {
 	struct inode *inode;
 	struct dentry *dentry;
+	struct vfsmount *mnt;
 	int error;
 
 	/* explicitly opened as large or we are on 64-bit box */
@@ -164,6 +172,7 @@ long do_ftruncate(struct file *file, loff_t length, int small)
 		small = 0;
 
 	dentry = file->f_path.dentry;
+	mnt = file->f_path.mnt;
 	inode = dentry->d_inode;
 	if (!S_ISREG(inode->i_mode) || !(file->f_mode & FMODE_WRITE))
 		return -EINVAL;
@@ -178,7 +187,7 @@ long do_ftruncate(struct file *file, loff_t length, int small)
 	sb_start_write(inode->i_sb);
 	error = security_file_truncate(file);
 	if (!error)
-		error = do_truncate(file_mnt_idmap(file), dentry, length,
+		error = do_truncate2(mnt, file_mnt_idmap(file), dentry, length,
 				    ATTR_MTIME | ATTR_CTIME, file);
 	sb_end_write(inode->i_sb);
 
@@ -647,7 +656,7 @@ retry_deleg:
 		goto out_unlock;
 	newattrs.ia_mode = (mode & S_IALLUGO) | (inode->i_mode & ~S_IALLUGO);
 	newattrs.ia_valid = ATTR_MODE | ATTR_CTIME;
-	error = notify_change(mnt_idmap(path->mnt), path->dentry,
+	error = notify_change2(path->mnt, mnt_idmap(path->mnt), path->dentry,
 			      &newattrs, &delegated_inode);
 out_unlock:
 	inode_unlock(inode);
@@ -787,7 +796,7 @@ retry_deleg:
 		from_vfsuid(idmap, fs_userns, newattrs.ia_vfsuid),
 		from_vfsgid(idmap, fs_userns, newattrs.ia_vfsgid));
 	if (!error)
-		error = notify_change(idmap, path->dentry, &newattrs,
+		error = notify_change2(path->mnt, idmap, path->dentry, &newattrs,
 				      &delegated_inode);
 	inode_unlock(inode);
 	if (delegated_inode) {
