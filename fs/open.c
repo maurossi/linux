@@ -573,7 +573,7 @@ retry:
 	if (error)
 		goto out;
 
-	error = inode_permission2(path.mnt, path.dentry->d_inode, MAY_EXEC | MAY_CHDIR);
+	error = path_permission2(path.mnt, &path, MAY_EXEC | MAY_CHDIR);
 	if (error)
 		goto dput_and_out;
 
@@ -602,7 +602,7 @@ SYSCALL_DEFINE1(fchdir, unsigned int, fd)
 	if (!d_can_lookup(fd_file(f)->f_path.dentry))
 		goto out_putf;
 
-	error = inode_permission2(fd_file(f)->f_path.mnt, file_inode(fd_file(f)),
+	error = file_permission2(fd_file(f)->f_path.mnt, fd_file(f),
 				MAY_EXEC | MAY_CHDIR);
 	if (!error)
 		set_fs_pwd(current->fs, &fd_file(f)->f_path);
@@ -622,7 +622,7 @@ retry:
 	if (error)
 		goto out;
 
-	error = inode_permission2(path.mnt, path.dentry->d_inode, MAY_EXEC | MAY_CHDIR);
+	error = path_permission2(path.mnt, &path, MAY_EXEC | MAY_CHDIR);
 	if (error)
 		goto dput_and_out;
 
