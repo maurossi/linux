@@ -741,7 +741,7 @@ void do_coredump(const kernel_siginfo_t *siginfo)
 		}
 		if (!(cprm.file->f_mode & FMODE_CAN_WRITE))
 			goto close_fail;
-		if (do_truncate(idmap, cprm.file->f_path.dentry,
+		if (do_truncate2(cprm.file->f_path.mnt, idmap, cprm.file->f_path.dentry,
 				0, 0, cprm.file))
 			goto close_fail;
 	}
