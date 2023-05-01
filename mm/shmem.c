@@ -3338,6 +3338,12 @@ static int shmem_xattr_handler_set(const struct xattr_handler *handler,
 	return err;
 }
 
+static const struct xattr_handler shmem_user_xattr_handler = {
+	.prefix = XATTR_USER_PREFIX,
+	.get = shmem_xattr_handler_get,
+	.set = shmem_xattr_handler_set,
+};
+
 static const struct xattr_handler shmem_security_xattr_handler = {
 	.prefix = XATTR_SECURITY_PREFIX,
 	.get = shmem_xattr_handler_get,
@@ -3351,6 +3357,7 @@ static const struct xattr_handler shmem_trusted_xattr_handler = {
 };
 
 static const struct xattr_handler *shmem_xattr_handlers[] = {
+	&shmem_user_xattr_handler,
 	&shmem_security_xattr_handler,
 	&shmem_trusted_xattr_handler,
 	NULL
