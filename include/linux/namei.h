@@ -72,7 +72,7 @@ static inline void end_removing_path(const struct path *path , struct dentry *de
 int vfs_path_parent_lookup(struct filename *filename, unsigned int flags,
 			   struct path *parent, struct qstr *last, int *type,
 			   const struct path *root);
-int vfs_path_lookup(struct dentry *, struct vfsmount *, const char *,
+extern int vfs_path_lookup(struct dentry *, struct vfsmount *, const char *,
 		    unsigned int, struct path *);
 
 extern struct dentry *try_lookup_noperm(struct qstr *, struct dentry *);
