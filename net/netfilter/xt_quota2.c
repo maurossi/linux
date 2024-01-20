@@ -192,7 +192,7 @@ q2_new_counter(const struct xt_quota_mtinfo2 *q, bool anon)
 	if (!anon) {
 		INIT_LIST_HEAD(&e->list);
 		atomic_set(&e->ref, 1);
-		strlcpy(e->name, q->name, sizeof(e->name));
+		strscpy(e->name, q->name, sizeof(e->name));
 	}
 	return e;
 }
