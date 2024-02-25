@@ -76,6 +76,7 @@ int vfs_path_lookup(struct dentry *, struct vfsmount *, const char *,
 
 extern struct dentry *try_lookup_one_len(const char *, struct dentry *, int);
 extern struct dentry *lookup_one_len(const char *, struct dentry *, int);
+extern struct dentry *lookup_one_len2(const char *, struct vfsmount *mnt, struct dentry *, int);
 extern struct dentry *lookup_one_len_unlocked(const char *, struct dentry *, int);
 extern struct dentry *lookup_positive_unlocked(const char *, struct dentry *, int);
 struct dentry *lookup_one(struct mnt_idmap *, const char *, struct dentry *, int);

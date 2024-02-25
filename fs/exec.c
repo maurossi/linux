@@ -1455,7 +1455,7 @@ void would_dump(struct linux_binprm *bprm, struct file *file)
 {
 	struct inode *inode = file_inode(file);
 	struct mnt_idmap *idmap = file_mnt_idmap(file);
-	if (inode_permission(idmap, inode, MAY_READ) < 0) {
+	if (inode_permission2(file->f_path.mnt, idmap, inode, MAY_READ) < 0) {
 		struct user_namespace *old, *user_ns;
 		bprm->interp_flags |= BINPRM_FLAGS_ENFORCE_NONDUMP;
 

@@ -1851,17 +1851,24 @@ bool inode_owner_or_capable(struct mnt_idmap *idmap,
  */
 int vfs_create(struct mnt_idmap *, struct inode *,
 	       struct dentry *, umode_t, bool);
+extern int vfs_create2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *, umode_t, bool);
 int vfs_mkdir(struct mnt_idmap *, struct inode *,
 	      struct dentry *, umode_t);
+extern int vfs_mkdir2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *, umode_t);
 int vfs_mknod(struct mnt_idmap *, struct inode *, struct dentry *,
               umode_t, dev_t);
+extern int vfs_mknod2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *, umode_t, dev_t);
 int vfs_symlink(struct mnt_idmap *, struct inode *,
 		struct dentry *, const char *);
+extern int vfs_symlink2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *, const char *);
 int vfs_link(struct dentry *, struct mnt_idmap *, struct inode *,
 	     struct dentry *, struct inode **);
+extern int vfs_link2(struct vfsmount *, struct dentry *, struct mnt_idmap *, struct inode *, struct dentry *, struct inode **);
 int vfs_rmdir(struct mnt_idmap *, struct inode *, struct dentry *);
+extern int vfs_rmdir2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *);
 int vfs_unlink(struct mnt_idmap *, struct inode *, struct dentry *,
 	       struct inode **);
+extern int vfs_unlink2(struct vfsmount *, struct mnt_idmap *, struct inode *, struct dentry *, struct inode **);
 
 /**
  * struct renamedata - contains all information required for renaming
@@ -1886,6 +1893,7 @@ struct renamedata {
 } __randomize_layout;
 
 int vfs_rename(struct renamedata *);
+extern int vfs_rename2(struct vfsmount *, struct renamedata *);
 
 static inline int vfs_whiteout(struct mnt_idmap *idmap,
 			       struct inode *dir, struct dentry *dentry)
@@ -1902,6 +1910,9 @@ struct file *kernel_file_open(const struct path *path, int flags,
 			      const struct cred *cred);
 
 int vfs_mkobj(struct dentry *, umode_t,
+		int (*f)(struct dentry *, umode_t, void *),
+		void *);
+int vfs_mkobj2(struct vfsmount *, struct dentry *, umode_t,
 		int (*f)(struct dentry *, umode_t, void *),
 		void *);
 
@@ -2822,6 +2833,7 @@ int notify_change(struct mnt_idmap *, struct dentry *,
 extern int notify_change2(struct vfsmount *, struct mnt_idmap *, struct dentry *,
 			struct iattr *, struct inode **);
 int inode_permission(struct mnt_idmap *, struct inode *, int);
+extern int inode_permission2(struct vfsmount *, struct mnt_idmap *, struct inode *, int);
 int generic_permission(struct mnt_idmap *, struct inode *, int);
 static inline int file_permission(struct file *file, int mask)
 {

@@ -444,6 +444,7 @@ EXPORT_SYMBOL(generic_permission);
 
 /**
  * do_inode_permission - UNIX permission checking
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @inode:	inode to check permissions on
  * @mask:	right to check for (%MAY_READ, %MAY_WRITE, %MAY_EXEC ...)
@@ -453,10 +454,12 @@ EXPORT_SYMBOL(generic_permission);
  * flag in inode->i_opflags, that says "this has not special
  * permission function, use the fast case".
  */
-static inline int do_inode_permission(struct mnt_idmap *idmap,
+static inline int do_inode_permission(struct vfsmount *mnt, struct mnt_idmap *idmap,
 				      struct inode *inode, int mask)
 {
 	if (unlikely(!(inode->i_opflags & IOP_FASTPERM))) {
+		if (likely(mnt && inode->i_op->permission2))
+			return inode->i_op->permission2(mnt, idmap, inode, mask);
 		if (likely(inode->i_op->permission))
 			return inode->i_op->permission(idmap, inode, mask);
 
@@ -489,7 +492,8 @@ static int sb_permission(struct super_block *sb, struct inode *inode, int mask)
 }
 
 /**
- * inode_permission - Check for access rights to a given inode
+ * inode_permission2 - Check for access rights to a given inode
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @inode:	Inode to check permission on
  * @mask:	Right to check for (%MAY_READ, %MAY_WRITE, %MAY_EXEC)
@@ -500,7 +504,7 @@ static int sb_permission(struct super_block *sb, struct inode *inode, int mask)
  *
  * When checking for MAY_APPEND, MAY_WRITE must also be set in @mask.
  */
-int inode_permission(struct mnt_idmap *idmap,
+int inode_permission2(struct vfsmount *mnt, struct mnt_idmap *idmap,
 		     struct inode *inode, int mask)
 {
 	int retval;
@@ -525,7 +529,7 @@ int inode_permission(struct mnt_idmap *idmap,
 			return -EACCES;
 	}
 
-	retval = do_inode_permission(idmap, inode, mask);
+	retval = do_inode_permission(mnt, idmap, inode, mask);
 	if (retval)
 		return retval;
 
@@ -533,7 +537,14 @@ int inode_permission(struct mnt_idmap *idmap,
 	if (retval)
 		return retval;
 
-	return security_inode_permission(inode, mask);
+	retval = security_inode_permission(inode, mask);
+	return retval;
+}
+EXPORT_SYMBOL(inode_permission2);
+
+int inode_permission(struct mnt_idmap *idmap, struct inode *inode, int mask)
+{
+	return inode_permission2(NULL, idmap, inode, mask);
 }
 EXPORT_SYMBOL(inode_permission);
 
@@ -1715,7 +1726,7 @@ static inline int may_lookup(struct mnt_idmap *idmap,
 			     struct nameidata *nd)
 {
 	if (nd->flags & LOOKUP_RCU) {
-		int err = inode_permission(idmap, nd->inode, MAY_EXEC|MAY_NOT_BLOCK);
+		int err = inode_permission2(nd->path.mnt, idmap, nd->inode, MAY_EXEC|MAY_NOT_BLOCK);
 		if (!err)		// success, keep going
 			return 0;
 		if (!try_to_unlazy(nd))
@@ -1723,7 +1734,7 @@ static inline int may_lookup(struct mnt_idmap *idmap,
 		if (err != -ECHILD)	// hard error
 			return err;
 	}
-	return inode_permission(idmap, nd->inode, MAY_EXEC);
+	return inode_permission2(nd->path.mnt, idmap, nd->inode, MAY_EXEC);
 }
 
 static int reserve_stack(struct nameidata *nd, struct path *link)
@@ -2678,8 +2689,8 @@ int vfs_path_lookup(struct dentry *dentry, struct vfsmount *mnt,
 EXPORT_SYMBOL(vfs_path_lookup);
 
 static int lookup_one_common(struct mnt_idmap *idmap,
-			     const char *name, struct dentry *base, int len,
-			     struct qstr *this)
+			     const char *name, struct vfsmount *mnt,
+			     struct dentry *base, int len, struct qstr *this)
 {
 	this->name = name;
 	this->len = len;
@@ -2705,7 +2716,7 @@ static int lookup_one_common(struct mnt_idmap *idmap,
 			return err;
 	}
 
-	return inode_permission(idmap, base->d_inode, MAY_EXEC);
+	return inode_permission2(mnt, idmap, base->d_inode, MAY_EXEC);
 }
 
 /**
@@ -2729,7 +2740,7 @@ struct dentry *try_lookup_one_len(const char *name, struct dentry *base, int len
 
 	WARN_ON_ONCE(!inode_is_locked(base->d_inode));
 
-	err = lookup_one_common(&nop_mnt_idmap, name, base, len, &this);
+	err = lookup_one_common(&nop_mnt_idmap, name, NULL, base, len, &this);
 	if (err)
 		return ERR_PTR(err);
 
@@ -2738,8 +2749,9 @@ struct dentry *try_lookup_one_len(const char *name, struct dentry *base, int len
 EXPORT_SYMBOL(try_lookup_one_len);
 
 /**
- * lookup_one_len - filesystem helper to lookup single pathname component
+ * lookup_one_len2 - filesystem helper to lookup single pathname component
  * @name:	pathname component to lookup
+ * @mnt:	pointer to vfs mount of the base directory
  * @base:	base directory to lookup from
  * @len:	maximum length @len should be interpreted to
  *
@@ -2748,7 +2760,7 @@ EXPORT_SYMBOL(try_lookup_one_len);
  *
  * The caller must hold base->i_mutex.
  */
-struct dentry *lookup_one_len(const char *name, struct dentry *base, int len)
+struct dentry *lookup_one_len2(const char *name, struct vfsmount *mnt, struct dentry *base, int len)
 {
 	struct dentry *dentry;
 	struct qstr this;
@@ -2756,19 +2768,26 @@ struct dentry *lookup_one_len(const char *name, struct dentry *base, int len)
 
 	WARN_ON_ONCE(!inode_is_locked(base->d_inode));
 
-	err = lookup_one_common(&nop_mnt_idmap, name, base, len, &this);
+	err = lookup_one_common(&nop_mnt_idmap, name, mnt, base, len, &this);
 	if (err)
 		return ERR_PTR(err);
 
 	dentry = lookup_dcache(&this, base, 0);
 	return dentry ? dentry : __lookup_slow(&this, base, 0);
 }
+EXPORT_SYMBOL(lookup_one_len2);
+
+struct dentry *lookup_one_len(const char *name, struct dentry *base, int len)
+{
+	return lookup_one_len2(name, NULL, base, len);
+}
 EXPORT_SYMBOL(lookup_one_len);
 
 /**
- * lookup_one - filesystem helper to lookup single pathname component
+ * lookup_one2 - filesystem helper to lookup single pathname component
  * @idmap:	idmap of the mount the lookup is performed from
  * @name:	pathname component to lookup
+ * @mnt:	pointer to vfs mount of the base directory
  * @base:	base directory to lookup from
  * @len:	maximum length @len should be interpreted to
  *
@@ -2777,8 +2796,8 @@ EXPORT_SYMBOL(lookup_one_len);
  *
  * The caller must hold base->i_mutex.
  */
-struct dentry *lookup_one(struct mnt_idmap *idmap, const char *name,
-			  struct dentry *base, int len)
+struct dentry *lookup_one2(struct mnt_idmap *idmap, const char *name,
+			  struct vfsmount *mnt, struct dentry *base, int len)
 {
 	struct dentry *dentry;
 	struct qstr this;
@@ -2786,12 +2805,19 @@ struct dentry *lookup_one(struct mnt_idmap *idmap, const char *name,
 
 	WARN_ON_ONCE(!inode_is_locked(base->d_inode));
 
-	err = lookup_one_common(idmap, name, base, len, &this);
+	err = lookup_one_common(idmap, name, mnt, base, len, &this);
 	if (err)
 		return ERR_PTR(err);
 
 	dentry = lookup_dcache(&this, base, 0);
 	return dentry ? dentry : __lookup_slow(&this, base, 0);
+}
+EXPORT_SYMBOL(lookup_one2);
+
+struct dentry *lookup_one(struct mnt_idmap *idmap, const char *name,
+			  struct dentry *base, int len)
+{
+	return lookup_one2(idmap, name, NULL, base, len);
 }
 EXPORT_SYMBOL(lookup_one);
 
@@ -2816,7 +2842,7 @@ struct dentry *lookup_one_unlocked(struct mnt_idmap *idmap,
 	int err;
 	struct dentry *ret;
 
-	err = lookup_one_common(idmap, name, base, len, &this);
+	err = lookup_one_common(idmap, name, NULL, base, len, &this);
 	if (err)
 		return ERR_PTR(err);
 
@@ -2966,7 +2992,7 @@ EXPORT_SYMBOL(__check_sticky);
  * 11. We don't allow removal of NFS sillyrenamed files; it's handled by
  *     nfs_async_unlink().
  */
-static int may_delete(struct mnt_idmap *idmap, struct inode *dir,
+static int may_delete(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 		      struct dentry *victim, bool isdir)
 {
 	struct inode *inode = d_backing_inode(victim);
@@ -2985,7 +3011,7 @@ static int may_delete(struct mnt_idmap *idmap, struct inode *dir,
 
 	audit_inode_child(dir, victim, AUDIT_TYPE_CHILD_DELETE);
 
-	error = inode_permission(idmap, dir, MAY_WRITE | MAY_EXEC);
+	error = inode_permission2(mnt, idmap, dir, MAY_WRITE | MAY_EXEC);
 	if (error)
 		return error;
 	if (IS_APPEND(dir))
@@ -3018,7 +3044,7 @@ static int may_delete(struct mnt_idmap *idmap, struct inode *dir,
  *  4. We should have write and exec permissions on dir
  *  5. We can't do it if dir is immutable (done in permission())
  */
-static inline int may_create(struct mnt_idmap *idmap,
+static inline int may_create(struct vfsmount *mnt, struct mnt_idmap *idmap,
 			     struct inode *dir, struct dentry *child)
 {
 	audit_inode_child(dir, child, AUDIT_TYPE_CHILD_CREATE);
@@ -3029,7 +3055,7 @@ static inline int may_create(struct mnt_idmap *idmap,
 	if (!fsuidgid_has_mapping(dir->i_sb, idmap))
 		return -EOVERFLOW;
 
-	return inode_permission(idmap, dir, MAY_WRITE | MAY_EXEC);
+	return inode_permission2(mnt, idmap, dir, MAY_WRITE | MAY_EXEC);
 }
 
 // p1 != p2, both are on the same filesystem, ->s_vfs_rename_mutex is held
@@ -3174,6 +3200,7 @@ static inline umode_t vfs_prepare_mode(struct mnt_idmap *idmap,
 
 /**
  * vfs_create - create new file
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	inode of @dentry
  * @dentry:	pointer to dentry of the base directory
@@ -3188,12 +3215,12 @@ static inline umode_t vfs_prepare_mode(struct mnt_idmap *idmap,
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_create2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 	       struct dentry *dentry, umode_t mode, bool want_excl)
 {
 	int error;
 
-	error = may_create(idmap, dir, dentry);
+	error = may_create(mnt, idmap, dir, dentry);
 	if (error)
 		return error;
 
@@ -3209,14 +3236,21 @@ int vfs_create(struct mnt_idmap *idmap, struct inode *dir,
 		fsnotify_create(dir, dentry);
 	return error;
 }
+EXPORT_SYMBOL(vfs_create2);
+
+int vfs_create(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry, umode_t mode,
+		bool want_excl)
+{
+	return vfs_create2(NULL, idmap, dir, dentry, mode, want_excl);
+}
 EXPORT_SYMBOL(vfs_create);
 
-int vfs_mkobj(struct dentry *dentry, umode_t mode,
+int vfs_mkobj2(struct vfsmount *mnt, struct dentry *dentry, umode_t mode,
 		int (*f)(struct dentry *, umode_t, void *),
 		void *arg)
 {
 	struct inode *dir = dentry->d_parent->d_inode;
-	int error = may_create(&nop_mnt_idmap, dir, dentry);
+	int error = may_create(mnt, &nop_mnt_idmap, dir, dentry);
 	if (error)
 		return error;
 
@@ -3230,6 +3264,15 @@ int vfs_mkobj(struct dentry *dentry, umode_t mode,
 		fsnotify_create(dir, dentry);
 	return error;
 }
+EXPORT_SYMBOL(vfs_mkobj2);
+
+
+int vfs_mkobj(struct dentry *dentry, umode_t mode,
+		int (*f)(struct dentry *, umode_t, void *),
+		void *arg)
+{
+	return vfs_mkobj2(NULL, dentry, mode, f, arg);
+}
 EXPORT_SYMBOL(vfs_mkobj);
 
 bool may_open_dev(const struct path *path)
@@ -3242,6 +3285,7 @@ static int may_open(struct mnt_idmap *idmap, const struct path *path,
 		    int acc_mode, int flag)
 {
 	struct dentry *dentry = path->dentry;
+	struct vfsmount *mnt = path->mnt;
 	struct inode *inode = dentry->d_inode;
 	int error;
 
@@ -3274,7 +3318,7 @@ static int may_open(struct mnt_idmap *idmap, const struct path *path,
 		break;
 	}
 
-	error = inode_permission(idmap, inode, MAY_OPEN | acc_mode);
+	error = inode_permission2(mnt, idmap, inode, MAY_OPEN | acc_mode);
 	if (error)
 		return error;
 
@@ -3331,7 +3375,7 @@ static int may_o_create(struct mnt_idmap *idmap,
 	if (!fsuidgid_has_mapping(dir->dentry->d_sb, idmap))
 		return -EOVERFLOW;
 
-	error = inode_permission(idmap, dir->dentry->d_inode,
+	error = inode_permission2(dir->mnt, idmap, dir->dentry->d_inode,
 				 MAY_WRITE | MAY_EXEC);
 	if (error)
 		return error;
@@ -3691,7 +3735,7 @@ int vfs_tmpfile(struct mnt_idmap *idmap,
 	int open_flag = file->f_flags;
 
 	/* we want directory to be writable */
-	error = inode_permission(idmap, dir, MAY_WRITE | MAY_EXEC);
+	error = inode_permission2(ERR_PTR(-EOPNOTSUPP), idmap, dir, MAY_WRITE | MAY_EXEC);
 	if (error)
 		return error;
 	if (!dir->i_op->tmpfile)
@@ -3973,6 +4017,7 @@ EXPORT_SYMBOL(user_path_create);
 
 /**
  * vfs_mknod - create device node or file
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	inode of @dentry
  * @dentry:	pointer to dentry of the base directory
@@ -3987,11 +4032,11 @@ EXPORT_SYMBOL(user_path_create);
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_mknod2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 	      struct dentry *dentry, umode_t mode, dev_t dev)
 {
 	bool is_whiteout = S_ISCHR(mode) && dev == WHITEOUT_DEV;
-	int error = may_create(idmap, dir, dentry);
+	int error = may_create(mnt, idmap, dir, dentry);
 
 	if (error)
 		return error;
@@ -4016,6 +4061,12 @@ int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir,
 	if (!error)
 		fsnotify_create(dir, dentry);
 	return error;
+}
+EXPORT_SYMBOL(vfs_mknod2);
+
+int vfs_mknod(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry, umode_t mode, dev_t dev)
+{
+	return vfs_mknod2(NULL, idmap, dir, dentry, mode, dev);
 }
 EXPORT_SYMBOL(vfs_mknod);
 
@@ -4062,13 +4113,13 @@ retry:
 	idmap = mnt_idmap(path.mnt);
 	switch (mode & S_IFMT) {
 		case 0: case S_IFREG:
-			error = vfs_create(idmap, path.dentry->d_inode,
+			error = vfs_create2(path.mnt, idmap, path.dentry->d_inode,
 					   dentry, mode, true);
 			if (!error)
 				security_path_post_mknod(idmap, dentry);
 			break;
 		case S_IFCHR: case S_IFBLK:
-			error = vfs_mknod(idmap, path.dentry->d_inode,
+			error = vfs_mknod2(path.mnt, idmap, path.dentry->d_inode,
 					  dentry, mode, new_decode_dev(dev));
 			break;
 		case S_IFIFO: case S_IFSOCK:
@@ -4100,6 +4151,7 @@ SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, d
 
 /**
  * vfs_mkdir - create directory
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	inode of @dentry
  * @dentry:	pointer to dentry of the base directory
@@ -4113,13 +4165,13 @@ SYSCALL_DEFINE3(mknod, const char __user *, filename, umode_t, mode, unsigned, d
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_mkdir(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_mkdir2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 	      struct dentry *dentry, umode_t mode)
 {
 	int error;
 	unsigned max_links = dir->i_sb->s_max_links;
 
-	error = may_create(idmap, dir, dentry);
+	error = may_create(mnt, idmap, dir, dentry);
 	if (error)
 		return error;
 
@@ -4139,6 +4191,12 @@ int vfs_mkdir(struct mnt_idmap *idmap, struct inode *dir,
 		fsnotify_mkdir(dir, dentry);
 	return error;
 }
+EXPORT_SYMBOL(vfs_mkdir2);
+
+int vfs_mkdir(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry, umode_t mode)
+{
+	return vfs_mkdir2(NULL, idmap, dir, dentry, mode);
+}
 EXPORT_SYMBOL(vfs_mkdir);
 
 int do_mkdirat(int dfd, struct filename *name, umode_t mode)
@@ -4157,7 +4215,7 @@ retry:
 	error = security_path_mkdir(&path, dentry,
 			mode_strip_umask(path.dentry->d_inode, mode));
 	if (!error) {
-		error = vfs_mkdir(mnt_idmap(path.mnt), path.dentry->d_inode,
+		error = vfs_mkdir2(path.mnt, mnt_idmap(path.mnt), path.dentry->d_inode,
 				  dentry, mode);
 	}
 	done_path_create(&path, dentry);
@@ -4182,6 +4240,7 @@ SYSCALL_DEFINE2(mkdir, const char __user *, pathname, umode_t, mode)
 
 /**
  * vfs_rmdir - remove directory
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	inode of @dentry
  * @dentry:	pointer to dentry of the base directory
@@ -4194,10 +4253,10 @@ SYSCALL_DEFINE2(mkdir, const char __user *, pathname, umode_t, mode)
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_rmdir(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_rmdir2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 		     struct dentry *dentry)
 {
-	int error = may_delete(idmap, dir, dentry, 1);
+	int error = may_delete(mnt, idmap, dir, dentry, 1);
 
 	if (error)
 		return error;
@@ -4232,6 +4291,12 @@ out:
 	if (!error)
 		d_delete_notify(dir, dentry);
 	return error;
+}
+EXPORT_SYMBOL(vfs_rmdir2);
+
+int vfs_rmdir(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry)
+{
+	return vfs_rmdir2(NULL, idmap, dir, dentry);
 }
 EXPORT_SYMBOL(vfs_rmdir);
 
@@ -4276,7 +4341,7 @@ retry:
 	error = security_path_rmdir(&path, dentry);
 	if (error)
 		goto exit4;
-	error = vfs_rmdir(mnt_idmap(path.mnt), path.dentry->d_inode, dentry);
+	error = vfs_rmdir2(path.mnt, mnt_idmap(path.mnt), path.dentry->d_inode, dentry);
 exit4:
 	dput(dentry);
 exit3:
@@ -4300,6 +4365,7 @@ SYSCALL_DEFINE1(rmdir, const char __user *, pathname)
 
 /**
  * vfs_unlink - unlink a filesystem object
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	parent directory
  * @dentry:	victim
@@ -4323,11 +4389,11 @@ SYSCALL_DEFINE1(rmdir, const char __user *, pathname)
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_unlink(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_unlink2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 	       struct dentry *dentry, struct inode **delegated_inode)
 {
 	struct inode *target = dentry->d_inode;
-	int error = may_delete(idmap, dir, dentry, 0);
+	int error = may_delete(mnt, idmap, dir, dentry, 0);
 
 	if (error)
 		return error;
@@ -4365,6 +4431,12 @@ out:
 	}
 
 	return error;
+}
+EXPORT_SYMBOL(vfs_unlink2);
+
+int vfs_unlink(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry, struct inode **delegated_inode)
+{
+	return vfs_unlink2(NULL, idmap, dir, dentry, delegated_inode);
 }
 EXPORT_SYMBOL(vfs_unlink);
 
@@ -4410,7 +4482,7 @@ retry_deleg:
 		error = security_path_unlink(&path, dentry);
 		if (error)
 			goto exit3;
-		error = vfs_unlink(mnt_idmap(path.mnt), path.dentry->d_inode,
+		error = vfs_unlink2(path.mnt, mnt_idmap(path.mnt), path.dentry->d_inode,
 				   dentry, &delegated_inode);
 exit3:
 		dput(dentry);
@@ -4463,6 +4535,7 @@ SYSCALL_DEFINE1(unlink, const char __user *, pathname)
 
 /**
  * vfs_symlink - create symlink
+ * @mnt:	pointer to vfs mount of the base directory
  * @idmap:	idmap of the mount the inode was found from
  * @dir:	inode of @dentry
  * @dentry:	pointer to dentry of the base directory
@@ -4476,12 +4549,12 @@ SYSCALL_DEFINE1(unlink, const char __user *, pathname)
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
+int vfs_symlink2(struct vfsmount *mnt, struct mnt_idmap *idmap, struct inode *dir,
 		struct dentry *dentry, const char *oldname)
 {
 	int error;
 
-	error = may_create(idmap, dir, dentry);
+	error = may_create(mnt, idmap, dir, dentry);
 	if (error)
 		return error;
 
@@ -4496,6 +4569,12 @@ int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir,
 	if (!error)
 		fsnotify_create(dir, dentry);
 	return error;
+}
+EXPORT_SYMBOL(vfs_symlink2);
+
+int vfs_symlink(struct mnt_idmap *idmap, struct inode *dir, struct dentry *dentry, const char *oldname)
+{
+	return vfs_symlink2(NULL, idmap, dir, dentry, oldname);
 }
 EXPORT_SYMBOL(vfs_symlink);
 
@@ -4518,7 +4597,7 @@ retry:
 
 	error = security_path_symlink(&path, dentry, from->name);
 	if (!error)
-		error = vfs_symlink(mnt_idmap(path.mnt), path.dentry->d_inode,
+		error = vfs_symlink2(path.mnt, mnt_idmap(path.mnt), path.dentry->d_inode,
 				    dentry, from->name);
 	done_path_create(&path, dentry);
 	if (retry_estale(error, lookup_flags)) {
@@ -4544,6 +4623,7 @@ SYSCALL_DEFINE2(symlink, const char __user *, oldname, const char __user *, newn
 
 /**
  * vfs_link - create a new link
+ * @mnt:	pointer to vfs mount of the base directory
  * @old_dentry:	object to be linked
  * @idmap:	idmap of the mount
  * @dir:	new parent
@@ -4568,7 +4648,7 @@ SYSCALL_DEFINE2(symlink, const char __user *, oldname, const char __user *, newn
  * On non-idmapped mounts or if permission checking is to be performed on the
  * raw inode simply pass @nop_mnt_idmap.
  */
-int vfs_link(struct dentry *old_dentry, struct mnt_idmap *idmap,
+int vfs_link2(struct vfsmount *mnt, struct dentry *old_dentry, struct mnt_idmap *idmap,
 	     struct inode *dir, struct dentry *new_dentry,
 	     struct inode **delegated_inode)
 {
@@ -4579,7 +4659,7 @@ int vfs_link(struct dentry *old_dentry, struct mnt_idmap *idmap,
 	if (!inode)
 		return -ENOENT;
 
-	error = may_create(idmap, dir, new_dentry);
+	error = may_create(mnt, idmap, dir, new_dentry);
 	if (error)
 		return error;
 
@@ -4628,6 +4708,12 @@ int vfs_link(struct dentry *old_dentry, struct mnt_idmap *idmap,
 	if (!error)
 		fsnotify_link(dir, inode, new_dentry);
 	return error;
+}
+EXPORT_SYMBOL(vfs_link2);
+
+int vfs_link(struct dentry *old_dentry, struct mnt_idmap *idmap, struct inode *dir, struct dentry *new_dentry, struct inode **delegated_inode)
+{
+	return vfs_link2(NULL, old_dentry, idmap, dir, new_dentry, delegated_inode);
 }
 EXPORT_SYMBOL(vfs_link);
 
@@ -4686,7 +4772,7 @@ retry:
 	error = security_path_link(old_path.dentry, &new_path, new_dentry);
 	if (error)
 		goto out_dput;
-	error = vfs_link(old_path.dentry, idmap, new_path.dentry->d_inode,
+	error = vfs_link2(old_path.mnt, old_path.dentry, idmap, new_path.dentry->d_inode,
 			 new_dentry, &delegated_inode);
 out_dput:
 	done_path_create(&new_path, new_dentry);
@@ -4725,6 +4811,7 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
 
 /**
  * vfs_rename - rename a filesystem object
+ * @mnt:	pointer to vfs mount of the base directory
  * @rd:		pointer to &struct renamedata info
  *
  * The caller must hold multiple mutexes--see lock_rename()).
@@ -4769,7 +4856,7 @@ SYSCALL_DEFINE2(link, const char __user *, oldname, const char __user *, newname
  *	   ->i_mutex on parents, which works but leads to some truly excessive
  *	   locking].
  */
-int vfs_rename(struct renamedata *rd)
+int vfs_rename2(struct vfsmount *mnt, struct renamedata *rd)
 {
 	int error;
 	struct inode *old_dir = rd->old_dir, *new_dir = rd->new_dir;
@@ -4788,20 +4875,20 @@ int vfs_rename(struct renamedata *rd)
 	if (source == target)
 		return 0;
 
-	error = may_delete(rd->old_mnt_idmap, old_dir, old_dentry, is_dir);
+	error = may_delete(mnt, rd->old_mnt_idmap, old_dir, old_dentry, is_dir);
 	if (error)
 		return error;
 
 	if (!target) {
-		error = may_create(rd->new_mnt_idmap, new_dir, new_dentry);
+		error = may_create(mnt, rd->new_mnt_idmap, new_dir, new_dentry);
 	} else {
 		new_is_dir = d_is_dir(new_dentry);
 
 		if (!(flags & RENAME_EXCHANGE))
-			error = may_delete(rd->new_mnt_idmap, new_dir,
+			error = may_delete(mnt, rd->new_mnt_idmap, new_dir,
 					   new_dentry, is_dir);
 		else
-			error = may_delete(rd->new_mnt_idmap, new_dir,
+			error = may_delete(mnt, rd->new_mnt_idmap, new_dir,
 					   new_dentry, new_is_dir);
 	}
 	if (error)
@@ -4816,13 +4903,13 @@ int vfs_rename(struct renamedata *rd)
 	 */
 	if (new_dir != old_dir) {
 		if (is_dir) {
-			error = inode_permission(rd->old_mnt_idmap, source,
+			error = inode_permission2(mnt, rd->old_mnt_idmap, source,
 						 MAY_WRITE);
 			if (error)
 				return error;
 		}
 		if ((flags & RENAME_EXCHANGE) && new_is_dir) {
-			error = inode_permission(rd->new_mnt_idmap, target,
+			error = inode_permission2(mnt, rd->new_mnt_idmap, target,
 						 MAY_WRITE);
 			if (error)
 				return error;
@@ -4926,6 +5013,12 @@ out:
 	release_dentry_name_snapshot(&old_name);
 
 	return error;
+}
+EXPORT_SYMBOL(vfs_rename2);
+
+int vfs_rename(struct renamedata *rd)
+{
+	return vfs_rename2(NULL, rd);
 }
 EXPORT_SYMBOL(vfs_rename);
 
@@ -5047,7 +5140,7 @@ retry_deleg:
 	rd.new_mnt_idmap   = mnt_idmap(new_path.mnt);
 	rd.delegated_inode = &delegated_inode;
 	rd.flags	   = flags;
-	error = vfs_rename(&rd);
+	error = vfs_rename2(old_path.mnt, &rd);
 exit5:
 	dput(new_dentry);
 exit4:
