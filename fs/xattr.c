@@ -152,7 +152,7 @@ xattr_permission(struct mnt_idmap *idmap, struct inode *inode,
 			return -EPERM;
 	}
 
-	return inode_permission(idmap, inode, mask);
+	return inode_permission2(ERR_PTR(-EOPNOTSUPP), idmap, inode, mask);
 }
 
 /*
