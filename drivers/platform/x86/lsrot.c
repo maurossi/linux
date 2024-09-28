@@ -125,20 +125,8 @@ static int set_ap_bit(int ap, bool enabled)
 	return 0;
 }
 
-static void event_handler(u32 value, void *context)
+static void event_handler(union acpi_object *obj, void *context)
 {
-	struct acpi_buffer response = { ACPI_ALLOCATE_BUFFER, NULL };
-	union acpi_object *obj;
-	acpi_status status;
-
-	status = wmi_get_event_data(value, &response);
-	if (ACPI_FAILURE(status)) {
-		printk(KERN_WARNING "%s: bad event\n", DRIVER_NAME);
-		return;
-	}
-
-	obj = (union acpi_object *)response.pointer;
-
 	if (obj && obj->type == ACPI_TYPE_BUFFER && obj->buffer.length == 0x40) {
 		u8 * data = (u8*) obj->buffer.pointer;
 		switch (EVID(data)) {
@@ -159,8 +147,6 @@ static void event_handler(u32 value, void *context)
 	} else {
 		printk(KERN_WARNING "%s: bad event\n", DRIVER_NAME);
 	}
-
-	kfree(obj);
 }
 
 static int __init lsrot_init_module (void)
