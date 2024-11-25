@@ -2380,7 +2380,7 @@ static int ctrl_cmd_untag(const char *input)
 		return res;
 	}
 	CT_DEBUG("qtaguid: ctrl_untag(%s): socket->...->f_count=%ld ->sk=%p\n",
-		 input, atomic_long_read(&el_socket->file->f_count),
+		 input, file_ref_read(&el_socket->file->f_ref),
 		 el_socket->sk);
 	res = qtaguid_untag(el_socket, false);
 	sockfd_put(el_socket);
