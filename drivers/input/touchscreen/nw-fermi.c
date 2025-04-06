@@ -769,4 +769,5 @@ static void __exit usb_fermi_exit(void)
 module_init(usb_fermi_init);
 module_exit(usb_fermi_exit);
 
+MODULE_DESCRIPTION("Nextwindow Fermi touchscreen driver");
 MODULE_LICENSE("GPL");
