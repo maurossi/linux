@@ -78,7 +78,8 @@ extern struct dentry *try_lookup_noperm(struct qstr *, struct dentry *);
 extern struct dentry *lookup_noperm(struct qstr *, struct dentry *);
 extern struct dentry *lookup_noperm_unlocked(struct qstr *, struct dentry *);
 extern struct dentry *lookup_noperm_positive_unlocked(struct qstr *, struct dentry *);
-struct dentry *lookup_one(struct mnt_idmap *, struct qstr *, struct dentry *);
+extern struct dentry *lookup_one(struct mnt_idmap *, struct qstr *, struct dentry *);
+extern struct dentry *lookup_one2(struct mnt_idmap *, struct qstr *, struct vfsmount *mnt, struct dentry *);
 struct dentry *lookup_one_unlocked(struct mnt_idmap *idmap,
 				   struct qstr *name, struct dentry *base);
 struct dentry *lookup_one_positive_unlocked(struct mnt_idmap *idmap,
