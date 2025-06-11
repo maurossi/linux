@@ -416,7 +416,7 @@ static const u8 *mipi_exec_gpio(struct intel_dsi *intel_dsi, const u8 *data)
 
 	if (native)
 		icl_native_gpio_set_value(display, gpio_number, value);
-	else if (DISPLAY_VER(display) >= 9)
+	else if (DISPLAY_VER(display) >= 9 && !display->platform.geminilake)
 		bxt_gpio_set_value(connector, gpio_index, value);
 	else if (display->platform.valleyview)
 		vlv_gpio_set_value(connector, gpio_source, gpio_number, value);
