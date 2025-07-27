@@ -3731,7 +3731,9 @@ void amdgpu_dm_update_connector_after_detect(
 	drm_dbg_kms(dev, "DCHPD: connector_id=%d: Old sink=%p New sink=%p\n",
 		    aconnector->connector_id, aconnector->dc_sink, sink);
 
-	guard(mutex)(&dev->mode_config.mutex);
+	/* When polling, DRM has already locked the mutex for us. */
+	if (!drm_kms_helper_is_poll_worker())
+		mutex_lock(&dev->mode_config.mutex);
 
 	/*
 	 * 1. Update status of the drm connector
@@ -3794,6 +3796,10 @@ void amdgpu_dm_update_connector_after_detect(
 	}
 
 	update_subconnector_property(aconnector);
+
+	/* When polling, the mutex will be unlocked for us by DRM. */
+	if (!drm_kms_helper_is_poll_worker())
+		mutex_unlock(&dev->mode_config.mutex);
 }
 
 static void handle_hpd_irq_helper(struct amdgpu_dm_connector *aconnector)
@@ -7058,9 +7064,59 @@ finish:
 }
 
 static enum drm_connector_status
+amdgpu_dm_connector_poll(struct amdgpu_dm_connector *aconnector, bool force)
+{
+	struct drm_connector *connector = &aconnector->base;
+	struct drm_device *dev = connector->dev;
+	struct amdgpu_device *adev = drm_to_adev(dev);
+	struct dc_link *link = aconnector->dc_link;
+	enum dc_connection_type conn_type = dc_connection_none;
+	enum drm_connector_status status = connector_status_disconnected;
+
+	/* When the EDID is missing on an analog connector, that means
+	 * we determined the connection using DAC load detection.
+	 * In this case do NOT poll the connector do detect disconnect
+	 * because that would run DAC load detection again which can cause
+	 * visible visual glitches.
+	 *
+	 * Only allow to poll such a connector again when forcing.
+	 */
+	if (!force && link->local_sink && link->local_sink->edid_caps.analog &&
+		!aconnector->drm_edid)
+		return connector->status;
+
+	mutex_lock(&aconnector->hpd_lock);
+
+	if (dc_link_detect_connection_type(aconnector->dc_link, &conn_type) &&
+	    conn_type != dc_connection_none) {
+		mutex_lock(&adev->dm.dc_lock);
+
+		if (dc_link_detect(link, DETECT_REASON_HPD))
+			status = connector_status_connected;
+
+		mutex_unlock(&adev->dm.dc_lock);
+	}
+
+	if (status == connector_status_disconnected) {
+		if (link->local_sink)
+			dc_sink_release(link->local_sink);
+
+		link->local_sink = NULL;
+		link->dpcd_sink_count = 0;
+		link->type = dc_connection_none;
+	}
+
+	amdgpu_dm_update_connector_after_detect(aconnector);
+
+	mutex_unlock(&aconnector->hpd_lock);
+	return status;
+}
+
+static enum drm_connector_status
 amdgpu_dm_connector_detect(struct drm_connector *connector, bool force)
 {
 	bool connected;
+	bool analog_connector;
 	struct amdgpu_dm_connector *aconnector = to_amdgpu_dm_connector(connector);
 
 	/*
@@ -7078,6 +7134,15 @@ amdgpu_dm_connector_detect(struct drm_connector *connector, bool force)
 				aconnector->base.force == DRM_FORCE_ON_DIGITAL);
 
 	update_subconnector_property(aconnector);
+
+	analog_connector =
+		aconnector->dc_link->link_id.id == CONNECTOR_ID_DUAL_LINK_DVII ||
+		aconnector->dc_link->link_id.id == CONNECTOR_ID_SINGLE_LINK_DVII ||
+		aconnector->dc_link->link_id.id == CONNECTOR_ID_VGA;
+
+	if (analog_connector && drm_kms_helper_is_poll_worker() &&
+		(!connected || aconnector->dc_sink->edid_caps.analog))
+		return amdgpu_dm_connector_poll(aconnector, force);
 
 	return (connected ? connector_status_connected :
 			connector_status_disconnected);
@@ -8037,24 +8102,26 @@ static int dm_update_mst_vcpi_slots_for_dsc(struct drm_atomic_state *state,
 	return 0;
 }
 
-static int to_drm_connector_type(enum signal_type st)
+static int to_drm_connector_type(uint32_t connector_id)
 {
-	switch (st) {
-	case SIGNAL_TYPE_HDMI_TYPE_A:
+	switch (connector_id) {
+	case CONNECTOR_ID_HDMI_TYPE_A:
 		return DRM_MODE_CONNECTOR_HDMIA;
-	case SIGNAL_TYPE_EDP:
+	case CONNECTOR_ID_EDP:
 		return DRM_MODE_CONNECTOR_eDP;
-	case SIGNAL_TYPE_LVDS:
+	case CONNECTOR_ID_LVDS:
 		return DRM_MODE_CONNECTOR_LVDS;
-	case SIGNAL_TYPE_RGB:
+	case CONNECTOR_ID_VGA:
 		return DRM_MODE_CONNECTOR_VGA;
-	case SIGNAL_TYPE_DISPLAY_PORT:
-	case SIGNAL_TYPE_DISPLAY_PORT_MST:
+	case CONNECTOR_ID_DISPLAY_PORT:
 		return DRM_MODE_CONNECTOR_DisplayPort;
-	case SIGNAL_TYPE_DVI_DUAL_LINK:
-	case SIGNAL_TYPE_DVI_SINGLE_LINK:
+	case CONNECTOR_ID_SINGLE_LINK_DVID:
+	case CONNECTOR_ID_DUAL_LINK_DVID:
 		return DRM_MODE_CONNECTOR_DVID;
-	case SIGNAL_TYPE_VIRTUAL:
+	case CONNECTOR_ID_SINGLE_LINK_DVII:
+	case CONNECTOR_ID_DUAL_LINK_DVII:
+		return DRM_MODE_CONNECTOR_DVII;
+	case CONNECTOR_ID_VIRTUAL:
 		return DRM_MODE_CONNECTOR_VIRTUAL;
 
 	default:
@@ -8104,7 +8171,7 @@ static void amdgpu_dm_get_native_mode(struct drm_connector *connector)
 
 static struct drm_display_mode *
 amdgpu_dm_create_common_mode(struct drm_encoder *encoder,
-			     char *name,
+			     const char *name,
 			     int hdisplay, int vdisplay)
 {
 	struct drm_device *dev = encoder->dev;
@@ -8126,6 +8193,24 @@ amdgpu_dm_create_common_mode(struct drm_encoder *encoder,
 
 }
 
+static const struct amdgpu_dm_mode_size {
+	char name[DRM_DISPLAY_MODE_LEN];
+	int w;
+	int h;
+} common_modes[] = {
+	{  "640x480",  640,  480},
+	{  "800x600",  800,  600},
+	{ "1024x768", 1024,  768},
+	{ "1280x720", 1280,  720},
+	{ "1280x800", 1280,  800},
+	{"1280x1024", 1280, 1024},
+	{ "1440x900", 1440,  900},
+	{"1680x1050", 1680, 1050},
+	{"1600x1200", 1600, 1200},
+	{"1920x1080", 1920, 1080},
+	{"1920x1200", 1920, 1200}
+};
+
 static void amdgpu_dm_connector_add_common_modes(struct drm_encoder *encoder,
 						 struct drm_connector *connector)
 {
@@ -8136,23 +8221,6 @@ static void amdgpu_dm_connector_add_common_modes(struct drm_encoder *encoder,
 				to_amdgpu_dm_connector(connector);
 	int i;
 	int n;
-	struct mode_size {
-		char name[DRM_DISPLAY_MODE_LEN];
-		int w;
-		int h;
-	} common_modes[] = {
-		{  "640x480",  640,  480},
-		{  "800x600",  800,  600},
-		{ "1024x768", 1024,  768},
-		{ "1280x720", 1280,  720},
-		{ "1280x800", 1280,  800},
-		{"1280x1024", 1280, 1024},
-		{ "1440x900", 1440,  900},
-		{"1680x1050", 1680, 1050},
-		{"1600x1200", 1600, 1200},
-		{"1920x1080", 1920, 1080},
-		{"1920x1200", 1920, 1200}
-	};
 
 	n = ARRAY_SIZE(common_modes);
 
@@ -8372,6 +8440,15 @@ static int amdgpu_dm_connector_get_modes(struct drm_connector *connector)
 		if (dc->link_srv->dp_get_encoding_format(verified_link_cap) == DP_128b_132b_ENCODING)
 			amdgpu_dm_connector->num_modes +=
 				drm_add_modes_noedid(connector, 1920, 1080);
+
+		if (amdgpu_dm_connector->dc_sink->edid_caps.analog) {
+			/* Analog monitor connected by DAC load detection.
+			 * Add common modes. It will be up to the user to select one that works.
+			 */
+			for (int i = 0; i < ARRAY_SIZE(common_modes); i++)
+				amdgpu_dm_connector->num_modes += drm_add_modes_noedid(
+					connector, common_modes[i].w, common_modes[i].h);
+		}
 	} else {
 		amdgpu_dm_connector_ddc_get_modes(connector, drm_edid);
 		if (encoder)
@@ -8439,6 +8516,11 @@ void amdgpu_dm_connector_init_helper(struct amdgpu_display_manager *dm,
 		break;
 	case DRM_MODE_CONNECTOR_DVID:
 		aconnector->base.polled = DRM_CONNECTOR_POLL_HPD;
+		break;
+	case DRM_MODE_CONNECTOR_DVII:
+	case DRM_MODE_CONNECTOR_VGA:
+		aconnector->base.polled =
+			DRM_CONNECTOR_POLL_CONNECT | DRM_CONNECTOR_POLL_DISCONNECT;
 		break;
 	default:
 		break;
@@ -8629,7 +8711,7 @@ static int amdgpu_dm_connector_init(struct amdgpu_display_manager *dm,
 		goto out_free;
 	}
 
-	connector_type = to_drm_connector_type(link->connector_signal);
+	connector_type = to_drm_connector_type(link->link_id.id);
 
 	res = drm_connector_init_with_ddc(
 			dm->ddev,

@@ -449,6 +449,32 @@ static enum channel_id get_ddc_line(struct dc_link *link)
 	return channel;
 }
 
+static enum engine_id find_analog_engine(struct dc_link *link)
+{
+	struct dc_bios *bp = link->ctx->dc_bios;
+	struct graphics_object_id encoder = {0};
+	enum bp_result bp_result = BP_RESULT_OK;
+	int i;
+
+	for (i = 0; i < 3; i++) {
+		bp_result = bp->funcs->get_src_obj(bp, link->link_id, i, &encoder);
+
+		if (bp_result != BP_RESULT_OK)
+			return ENGINE_ID_UNKNOWN;
+
+		switch (encoder.id) {
+		case ENCODER_ID_INTERNAL_DAC1:
+		case ENCODER_ID_INTERNAL_KLDSCP_DAC1:
+			return ENGINE_ID_DACA;
+		case ENCODER_ID_INTERNAL_DAC2:
+		case ENCODER_ID_INTERNAL_KLDSCP_DAC2:
+			return ENGINE_ID_DACB;
+		}
+	}
+
+	return ENGINE_ID_UNKNOWN;
+}
+
 static bool construct_phy(struct dc_link *link,
 			      const struct link_init_data *init_params)
 {
@@ -460,6 +486,7 @@ static bool construct_phy(struct dc_link *link,
 	struct dc_bios *bios = init_params->dc->ctx->dc_bios;
 	const struct dc_vbios_funcs *bp_funcs = bios->funcs;
 	struct bp_disp_connector_caps_info disp_connect_caps_info = { 0 };
+
 
 	DC_LOGGER_INIT(dc_ctx->logger);
 
@@ -527,6 +554,9 @@ static bool construct_phy(struct dc_link *link,
 	case CONNECTOR_ID_DUAL_LINK_DVID:
 	case CONNECTOR_ID_DUAL_LINK_DVII:
 		link->connector_signal = SIGNAL_TYPE_DVI_DUAL_LINK;
+		break;
+	case CONNECTOR_ID_VGA:
+		link->connector_signal = SIGNAL_TYPE_RGB;
 		break;
 	case CONNECTOR_ID_DISPLAY_PORT:
 	case CONNECTOR_ID_MXM:
@@ -614,6 +644,7 @@ static bool construct_phy(struct dc_link *link,
 	enc_init_data.connector = link->link_id;
 	enc_init_data.channel = get_ddc_line(link);
 	enc_init_data.hpd_source = get_hpd_line(link);
+	enc_init_data.analog_engine = find_analog_engine(link);
 
 	link->hpd_src = enc_init_data.hpd_source;
 

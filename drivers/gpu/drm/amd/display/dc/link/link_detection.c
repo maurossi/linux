@@ -942,6 +942,12 @@ static bool detect_link_and_local_sink(struct dc_link *link,
 			break;
 		}
 
+		case SIGNAL_TYPE_RGB: {
+			sink_caps.transaction_type = DDC_TRANSACTION_TYPE_I2C;
+			sink_caps.signal = SIGNAL_TYPE_RGB;
+			break;
+		}
+
 		case SIGNAL_TYPE_LVDS: {
 			sink_caps.transaction_type = DDC_TRANSACTION_TYPE_I2C;
 			sink_caps.signal = SIGNAL_TYPE_LVDS;
@@ -1067,6 +1073,20 @@ static bool detect_link_and_local_sink(struct dc_link *link,
 			break;
 		case EDID_NO_RESPONSE:
 			DC_LOG_ERROR("No EDID read.\n");
+
+			/* Analog connectors without EDID.
+			 * This can be an old monitor that actually doesn't have EDID,
+			 * or could be a cheap DVI/VGA adapter that doesn't connect DDC,
+			 * and therefore we can't read the EDID.
+			 */
+			if (link->link_enc->connector.id == CONNECTOR_ID_VGA ||
+				link->link_enc->connector.id == CONNECTOR_ID_DUAL_LINK_DVII ||
+				link->link_enc->connector.id == CONNECTOR_ID_SINGLE_LINK_DVII) {
+				DC_LOG_INFO("%s detected analog display without EDID\n", __func__);
+				sink->edid_caps.analog = true;
+				break;
+			}
+
 			/*
 			 * Abort detection for non-DP connectors if we have
 			 * no EDID
@@ -1133,8 +1153,16 @@ static bool detect_link_and_local_sink(struct dc_link *link,
 				sink = prev_sink;
 				prev_sink = NULL;
 			}
-			query_hdcp_capability(sink->sink_signal, link);
+
+			if (!sink->edid_caps.analog)
+				query_hdcp_capability(sink->sink_signal, link);
 		}
+
+		/* DVI-I connector connected to analog display. */
+		if ((link->link_enc->connector.id == CONNECTOR_ID_DUAL_LINK_DVII ||
+		     link->link_enc->connector.id == CONNECTOR_ID_SINGLE_LINK_DVII) &&
+			sink->edid_caps.analog)
+			sink->sink_signal = SIGNAL_TYPE_RGB;
 
 		/* HDMI-DVI Dongle */
 		if (sink->sink_signal == SIGNAL_TYPE_HDMI_TYPE_A &&
@@ -1228,6 +1256,93 @@ static bool detect_link_and_local_sink(struct dc_link *link,
 	return true;
 }
 
+/**
+ * Evaluates whether an EDID header is acceptable,
+ * for the purpose of determining a connection with a display.
+ */
+static bool link_detect_evaluate_edid_header(uint8_t edid_header[8])
+{
+	int edid_header_score = 0;
+	int i;
+
+	for (i = 0; i < 8; ++i)
+		edid_header_score += edid_header[i] == ((i == 0 || i == 7) ? 0x00 : 0xff);
+
+	return edid_header_score >= 6;
+}
+
+/**
+ * Tries to detect a connected display by probing the DDC
+ * and reading the EDID header.
+ * The probing is considered successful if we receive a
+ * reply from the DDC over I2C and the EDID header matches.
+ */
+static bool link_detect_ddc_probe(struct dc_link *link)
+{
+	if (!link->ddc)
+		return false;
+
+	uint8_t edid_header[8] = {0};
+	bool ddc_probed = i2c_read(link->ddc, 0x50, edid_header, sizeof(edid_header));
+
+	if (!ddc_probed)
+		return false;
+
+	if (!link_detect_evaluate_edid_header(edid_header))
+		return false;
+
+	return true;
+}
+
+static bool link_detect_dac_load_detect(struct dc_link *link)
+{
+	struct dc_bios *bios = link->ctx->dc_bios;
+	struct link_encoder *link_enc = link->link_enc;
+	enum engine_id engine_id = link_enc->preferred_engine;
+	enum dal_device_type device_type = DEVICE_TYPE_CRT;
+	enum bp_result bp_result;
+	uint32_t enum_id;
+
+	switch (engine_id) {
+	case ENGINE_ID_DACB:
+		enum_id = 2;
+		break;
+	case ENGINE_ID_DACA:
+	default:
+		engine_id = ENGINE_ID_DACA;
+		enum_id = 1;
+		break;
+	}
+
+	bp_result = bios->funcs->dac_load_detection(bios, engine_id, device_type, enum_id);
+	return bp_result == BP_RESULT_OK;
+}
+
+/**
+ * Determines if there is an analog sink connected.
+ */
+static bool link_detect_analog(struct dc_link *link, enum dc_connection_type *type)
+{
+	/* Don't care about connectors that don't support an analog signal. */
+	if (link->link_enc->connector.id != CONNECTOR_ID_VGA &&
+		link->link_enc->connector.id != CONNECTOR_ID_SINGLE_LINK_DVII &&
+		link->link_enc->connector.id != CONNECTOR_ID_DUAL_LINK_DVII)
+		return false;
+
+	if (link_detect_ddc_probe(link)) {
+		*type = dc_connection_single;
+		return true;
+	}
+
+	if (link_detect_dac_load_detect(link)) {
+		*type = dc_connection_single;
+		return true;
+	}
+
+	*type = dc_connection_none;
+	return true;
+}
+
 /*
  * link_detect_connection_type() - Determine if there is a sink connected
  *
@@ -1238,6 +1353,7 @@ static bool detect_link_and_local_sink(struct dc_link *link,
 bool link_detect_connection_type(struct dc_link *link, enum dc_connection_type *type)
 {
 	uint32_t is_hpd_high = 0;
+	bool supports_hpd = link->irq_source_hpd != DC_IRQ_SOURCE_INVALID;
 
 	if (link->connector_signal == SIGNAL_TYPE_LVDS) {
 		*type = dc_connection_single;
@@ -1261,6 +1377,8 @@ bool link_detect_connection_type(struct dc_link *link, enum dc_connection_type *
 		return true;
 	}
 
+	if (!supports_hpd)
+		return link_detect_analog(link, type);
 
 	if (!query_hpd_status(link, &is_hpd_high))
 		goto hpd_gpio_failure;
@@ -1269,6 +1387,9 @@ bool link_detect_connection_type(struct dc_link *link, enum dc_connection_type *
 		*type = dc_connection_single;
 		/* TODO: need to do the actual detection */
 	} else {
+		if (link_detect_analog(link, type))
+			return true;
+
 		*type = dc_connection_none;
 		if (link->connector_signal == SIGNAL_TYPE_EDP) {
 			/* eDP is not connected, power down it */
