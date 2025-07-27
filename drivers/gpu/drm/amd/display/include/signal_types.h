@@ -118,6 +118,11 @@ static inline bool dc_is_dvi_signal(enum signal_type signal)
 	}
 }
 
+static inline bool dc_is_rgb_signal(enum signal_type signal)
+{
+	return (signal == SIGNAL_TYPE_RGB);
+}
+
 static inline bool dc_is_tmds_signal(enum signal_type signal)
 {
 	switch (signal) {
