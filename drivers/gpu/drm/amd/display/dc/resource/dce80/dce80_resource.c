@@ -77,6 +77,7 @@
 
 
 #ifndef mmBIOS_SCRATCH_2
+	#define mmBIOS_SCRATCH_0 0x05C9
 	#define mmBIOS_SCRATCH_2 0x05CB
 	#define mmBIOS_SCRATCH_3 0x05CC
 	#define mmBIOS_SCRATCH_6 0x05CF
@@ -240,6 +241,7 @@ static const struct dce110_link_enc_registers link_enc_regs[] = {
 	link_regs(4),
 	link_regs(5),
 	link_regs(6),
+	{ .DAC_ENABLE = mmDAC_ENABLE },
 };
 
 #define stream_enc_regs(id)\
@@ -367,6 +369,7 @@ static const struct dce110_clk_src_mask cs_mask = {
 };
 
 static const struct bios_registers bios_regs = {
+	.BIOS_SCRATCH_0 = mmBIOS_SCRATCH_0,
 	.BIOS_SCRATCH_3 = mmBIOS_SCRATCH_3,
 	.BIOS_SCRATCH_6 = mmBIOS_SCRATCH_6
 };
@@ -374,6 +377,7 @@ static const struct bios_registers bios_regs = {
 static const struct resource_caps res_cap = {
 		.num_timing_generator = 6,
 		.num_audio = 6,
+		.num_analog_stream_encoder = 1,
 		.num_stream_encoder = 6,
 		.num_pll = 3,
 		.num_ddc = 6,
@@ -382,6 +386,7 @@ static const struct resource_caps res_cap = {
 static const struct resource_caps res_cap_81 = {
 		.num_timing_generator = 4,
 		.num_audio = 7,
+		.num_analog_stream_encoder = 1,
 		.num_stream_encoder = 7,
 		.num_pll = 3,
 		.num_ddc = 6,
@@ -390,6 +395,7 @@ static const struct resource_caps res_cap_81 = {
 static const struct resource_caps res_cap_83 = {
 		.num_timing_generator = 2,
 		.num_audio = 6,
+		.num_analog_stream_encoder = 1,
 		.num_stream_encoder = 6,
 		.num_pll = 2,
 		.num_ddc = 2,
@@ -604,6 +610,11 @@ static struct stream_encoder *dce80_stream_encoder_create(
 	if (!enc110)
 		return NULL;
 
+	if (eng_id == ENGINE_ID_DACA || eng_id == ENGINE_ID_DACB) {
+		dce110_analog_stream_encoder_construct(enc110, ctx, ctx->dc_bios, eng_id);
+		return &enc110->base;
+	}
+
 	dce110_stream_encoder_construct(enc110, ctx, ctx->dc_bios, eng_id,
 					&stream_enc_regs[eng_id],
 					&se_shift, &se_mask);
@@ -723,7 +734,17 @@ static struct link_encoder *dce80_link_encoder_create(
 		kzalloc(sizeof(struct dce110_link_encoder), GFP_KERNEL);
 	int link_regs_id;
 
-	if (!enc110 || enc_init_data->hpd_source >= ARRAY_SIZE(link_enc_hpd_regs))
+	if (!enc110)
+		return NULL;
+
+	if (enc_init_data->connector.id == CONNECTOR_ID_VGA) {
+		dce110_analog_link_encoder_construct(enc110,
+						enc_init_data,
+						&link_enc_regs[ENGINE_ID_DACA]);
+		return &enc110->base;
+	}
+
+	if (enc_init_data->hpd_source >= ARRAY_SIZE(link_enc_hpd_regs))
 		return NULL;
 
 	link_regs_id =
