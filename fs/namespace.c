@@ -1246,6 +1246,7 @@ EXPORT_SYMBOL_GPL(vfs_kern_mount);
 static struct mount *clone_mnt(struct mount *old, struct dentry *root,
 					int flag)
 {
+	struct super_block *sb = old->mnt.mnt_sb;
 	struct mount *mnt;
 	int err;
 
