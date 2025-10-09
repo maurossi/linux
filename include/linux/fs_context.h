@@ -149,6 +149,8 @@ extern void put_fs_context(struct fs_context *fc);
 extern int vfs_parse_fs_param_source(struct fs_context *fc,
 				     struct fs_parameter *param);
 extern void fc_drop_locked(struct fs_context *fc);
+int reconfigure_single(struct super_block *s,
+		       int flags, void *data);
 
 int get_tree_super(struct fs_context *fc,
 		   int (*test)(struct super_block *, struct fs_context *),
