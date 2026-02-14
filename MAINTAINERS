@@ -1938,6 +1938,11 @@ S:	Supported
 F:	Documentation/devicetree/bindings/watchdog/andestech,ae350-wdt.yaml
 F:	drivers/watchdog/atcwdt200_wdt.c
 
+ANDROID CONFIG FRAGMENTS
+M:	Rob Herring <robh@kernel.org>
+S:	Supported
+F:	kernel/configs/android*
+
 ANDROID DRIVERS
 M:	Greg Kroah-Hartman <gregkh@linuxfoundation.org>
 M:	Arve Hjønnevåg <arve@android.com>
