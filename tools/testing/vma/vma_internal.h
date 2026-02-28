@@ -36,11 +36,11 @@
  * ahead of all other headers.
  */
 #define __private
-/* NUM_MM_FLAG_BITS defined by test code. */
+#define NUM_MM_FLAG_BITS (64)
 typedef struct {
 	__private DECLARE_BITMAP(__mm_flags, NUM_MM_FLAG_BITS);
 } mm_flags_t;
-/* NUM_VMA_FLAG_BITS defined by test code. */
+#define NUM_VMA_FLAG_BITS BITS_PER_LONG
 typedef struct {
 	DECLARE_BITMAP(__vma_flags, NUM_VMA_FLAG_BITS);
 } __private vma_flags_t;
