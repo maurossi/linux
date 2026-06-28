@@ -1667,6 +1667,7 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 	int flags, const char *dev_name, void *data,
 	int (*fill_super)(struct super_block *, void *, int))
 {
+	struct fs_context *fc;
 	struct super_block *s;
 	int error;
 	dev_t dev;
@@ -1676,7 +1677,10 @@ struct dentry *mount_bdev(struct file_system_type *fs_type,
 		return ERR_PTR(error);
 
 	flags |= SB_NOSEC;
-	s = sget(fs_type, test_bdev_super, set_bdev_super, flags, &dev);
+	fc = fs_context_for_mount(fs_type, flags);
+	if (IS_ERR(fc))
+		return ERR_CAST(fc);
+	s = sget_fc(fc, super_s_dev_test, super_s_dev_set);
 	if (IS_ERR(s))
 		return ERR_CAST(s);
 
@@ -1720,7 +1724,12 @@ struct dentry *mount_nodev(struct file_system_type *fs_type,
 	int (*fill_super)(struct super_block *, void *, int))
 {
 	int error;
-	struct super_block *s = sget(fs_type, NULL, set_anon_super, flags, NULL);
+
+	struct fs_context *fc = fs_context_for_mount(fs_type, flags);
+	if (IS_ERR(fc))
+		return ERR_CAST(fc);
+
+	struct super_block *s = sget_fc(fc, NULL, set_anon_super_fc);
 
 	if (IS_ERR(s))
 		return ERR_CAST(s);
@@ -1769,10 +1778,15 @@ struct dentry *mount_single(struct file_system_type *fs_type,
 	int flags, void *data,
 	int (*fill_super)(struct super_block *, void *, int))
 {
+	struct fs_context *fc;
 	struct super_block *s;
 	int error;
 
-	s = sget(fs_type, compare_single, set_anon_super, flags, NULL);
+	fc = fs_context_for_mount(fs_type, flags);
+	if (IS_ERR(fc))
+		return ERR_CAST(fc);
+
+	s = sget_fc(fc, test_single_super, set_anon_super_fc);
 	if (IS_ERR(s))
 		return ERR_CAST(s);
 	if (!s->s_root) {
