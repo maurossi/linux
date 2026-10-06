@@ -1732,6 +1732,7 @@ config X86_UMIP
 config X86_SSE_EMULATION
 	bool "Emulate SSSE3, SSE4.1, SSE4.2, POPCNT and MOVBE for user space"
 	depends on X86_64
+	default y
 	help
 	  Emulate the SSSE3, SSE4.1, SSE4.2, POPCNT and MOVBE instructions
 	  in the invalid opcode (#UD) handler when user space executes them
