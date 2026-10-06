@@ -492,7 +492,8 @@ DEFINE_IDTENTRY_RAW(exc_invalid_op)
 
 	state = irqentry_enter(regs);
 	instrumentation_begin();
-	handle_invalid_op(regs);
+	if (!handle_sse_emulation(regs))
+		handle_invalid_op(regs);
 	instrumentation_end();
 	irqentry_exit(regs, state);
 }
