@@ -1729,6 +1729,25 @@ config X86_UMIP
 	  specific cases in protected and virtual-8086 modes. Emulated
 	  results are dummy.
 
+config X86_SSE_EMULATION
+	bool "Emulate SSSE3, SSE4.1, SSE4.2, POPCNT and MOVBE for user space"
+	depends on X86_64
+	help
+	  Emulate the SSSE3, SSE4.1, SSE4.2, POPCNT and MOVBE instructions
+	  in the invalid opcode (#UD) handler when user space executes them
+	  on a CPU which does not implement them, e.g. Intel Core 2 (Merom)
+	  or AMD K8/K10. This allows running binaries built for a newer
+	  baseline, such as the x86_64 Android ABI, on such CPUs.
+
+	  Only the legacy SSE encodings are emulated, not AVX. Every emulated
+	  instruction costs a trap into the kernel, so code which uses these
+	  instructions in hot loops will run a lot slower. Applications which
+	  check CPUID still see the real CPU features.
+
+	  The emulation can be disabled at boot with "sse_emu=0".
+
+	  If unsure, say N.
+
 config CC_HAS_IBT
 	# GCC >= 9 and binutils >= 2.29
 	# Retpoline check to work around https://gcc.gnu.org/bugzilla/show_bug.cgi?id=93654
